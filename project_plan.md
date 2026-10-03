@@ -41,10 +41,8 @@ As a rough hypothesis, I would predict that the TV show corpus as a whole will f
 
 The biggest challenge in this process will almost certainly be retrieving the necessary data from Scraps from the Loft and transforming it into an adequate data frame for the analysis above. 
 To a lesser extent, doing the same for the Santa Barbara Corpus may also be a challenge. 
-To begin to approach these challenges, I will consider the two data sources independently. 
-
-### Santa Barbara Corpus
-
+Since each data source is quite unique, it is important to have two different pipelines for gathering the necessary data. 
+The Road Map section outlines the steps (separated into three different submissions) that will be necessary to wrangle the data.
 
 ## Road Map
 
@@ -57,14 +55,23 @@ GOAL:
 For the first project report, I will have a complete data frame schematized as below:
 
 | ID (TV Show or Natural) |                                   Text                                         |
+|-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 1         | "What did you say? I told you I'm through. What are you even doing here?..."   |
+|-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 2         | "What did you say? I told you I'm through. What are you even doing here?..."   |
+|-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 3         | "What did you say? I told you I'm through. What are you even doing here?..."   |
+|-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 4         | "What did you say? I told you I'm through. What are you even doing here?..."   |
+|-------------------------|--------------------------------------------------------------------------------|
 |       Natural 1         | "Huh? I said it's. Oh alright. Yeah. Did you hear? They just said who...."     |
+|-------------------------|--------------------------------------------------------------------------------|
 |       Natural 2         | "Huh? I said it's. Oh alright. Yeah. Did you hear? They just said who...."     |
+|-------------------------|--------------------------------------------------------------------------------|
 |       Natural 3         | "Huh? I said it's. Oh alright. Yeah. Did you hear? They just said who...."     |
+|-------------------------|--------------------------------------------------------------------------------|
 |       Natural 4         | "Huh? I said it's. Oh alright. Yeah. Did you hear? They just said who...."     |
+|-------------------------|--------------------------------------------------------------------------------|
 
 Creating this will require a pipeline which scales up the following process for a single file (different for each data source):
 
@@ -103,3 +110,9 @@ Data frame of 67 linguistic features
 
 The big hiccups I foresee are 1) the accuracy of the spacy tagging particularly given odd discourse features (might be the biggest problem in the natural discourse) and 2) complications in webscraping which is something I haven't done before and seems quite complex. 
 
+Necessary Citations:
+Biber 1988
+Santa Barabara Corpus
+Scraps from the Loft
+pybiber script
+mda.biber package
