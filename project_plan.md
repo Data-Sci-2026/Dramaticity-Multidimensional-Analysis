@@ -57,20 +57,14 @@ For the first project report, I will have a complete data frame schematized as b
 | ID (TV Show or Natural) |                                   Text                                         |
 |-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 1         | "What did you say? I told you I'm through. What are you even doing here?..."   |
-|       TV Show 2         | "What did you say? I told you I'm through. What are you even doing here?..."   |
-|-------------------------|--------------------------------------------------------------------------------|
+|       TV Show 2         | "What did you say? I told you I'm through. What are you even doing here?..."   |  
 |       TV Show 3         | "What did you say? I told you I'm through. What are you even doing here?..."   |
-|-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 4         | "What did you say? I told you I'm through. What are you even doing here?..."   |
-|-------------------------|--------------------------------------------------------------------------------|
 |       Natural 1         | "Huh? I said it's. Oh alright. Yeah. Did you hear? They just said who...."     |
-|-------------------------|--------------------------------------------------------------------------------|
 |       Natural 2         | "Huh? I said it's. Oh alright. Yeah. Did you hear? They just said who...."     |
-|-------------------------|--------------------------------------------------------------------------------|
 |       Natural 3         | "Huh? I said it's. Oh alright. Yeah. Did you hear? They just said who...."     |
-|-------------------------|--------------------------------------------------------------------------------|
 |       Natural 4         | "Huh? I said it's. Oh alright. Yeah. Did you hear? They just said who...."     |
-|-------------------------|--------------------------------------------------------------------------------|
+|        ...              |                                   ...                                          |
 
 Creating this will require a pipeline which scales up the following process for a single file (different for each data source):
 
@@ -93,17 +87,23 @@ Below is a schema for the general shape of the important dfs to be recorded:
 
 Data Frame of Spacy Parsing
 
-| ID (TV Show or Natural)  | sentence_id |token_id  |	 token   | lemma  |  pos	 | tag	 | head_token_id	| dep_rel |   
+| ID (TV Show or Natural)  | sentence_id |token_id  |	 token   | lemma  |  pos	 | tag	 | head_token_id	| dep_rel | 
+|--------------------------|-------------|----------|----------|--------|--------|-------|----------------|---------|
 |       TV Show 1          |     1       |    1     |   "what" | "what" | "ADV"  | "RB"  |      3         |  x      |
 |       TV Show 1          |     1       |    2     |   "did"  | "do"   | "VERB" | "VBD" |      3         |  x      |
 |       TV Show 1          |     1       |    3     |   "you"  | "you"  | "ADV"  | "PRN" |      3         |  x      |
 |       TV Show 1          |     1       |    4     |   "say"  | "say"  | "VERB" | "VBD" |      3         |  x      |
 |       Natural 1          |     1       |    1     |   "huh"  | "huh"  | "ADV"  | "RB"  |      1         |  x      |
+|         ...              |    ...      |    ...   |    ...   |  ...   |  ...   |  ...  |      ...       |  ...    |
 
 
 Data frame of 67 linguistic features
 
-|doc_id |	f_01_past_tense |	f_02_perfect_aspect |	f_03_present_tense | f_04_place_adverbials | f_05_time_adverbials |
+|  doc_id   |	f_01_past_tense |	f_02_perfect_aspect |	f_03_present_tense | f_04_place_adverbials | f_05_time_adverbials | f_... |
+|-----------|-----------------|---------------------|--------------------|-----------------------|----------------------|-------|
+| TV Show 1 |     double      |        double       |        double      |          double       |        double        | double|
+| Natural 1 |     double      |        double       |        double      |          double       |        double        | double|
+|    ...    |      ...        |        ...          |          ...       |          ...          |         ...          |  ...  |
 
 ## Concluding Remarks
 
