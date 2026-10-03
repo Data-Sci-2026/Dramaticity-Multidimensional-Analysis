@@ -26,16 +26,15 @@ I plan to select sixty episodes, each one from a different series, so that the n
 
 I intend to run [Biber's 1988 multidimensional analysis (MDA) on register](https://www.jstor.org/stable/43267884). 
 The MDA contains five potential dimensions containing 67 linguistic features. 
-First, I will create a data frame comprised of "name"" (representing categorical variables, in this case "natural"" or "TV show"") and uninterrupted text from the sources described in the previous section 
+First, I will create a data frame comprised of "name"" (representing categorical variables, in this case "natural"" or "TV show"") and uninterrupted text from the sources described in the previous section.
 Using a python package, `pybiber`, I will create another data frame of tagged features.
-Importantly, these tagged features are not perfect and I should take care that the data is formatted to help the tagger be as correct as possible.
+Importantly, these tagged features are not perfect and I should take care that the data is formatted to help the tagger be as accurate as possible.
 This data frame of tagged features will then be again transformed into a data frame listing a score on each of the 67 linguistic features for each sentence in each text.
 The data frame will have 68 columns and n rows where n is the number of total sentences in all documents.
 Then, using a scree plot, I will determine the number of factors that need to be calculated. 
 Using an R package called `mda.biber`, I will take this data frame of scores and compute their factor weights (for the number of factors determined above) in a process explained at length [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html).
 
 Once these dimension scores are determined, I intend to identify the linguistic features which correlate and suggest specifically the 'dramatic' nature of the text based on previous work and observations by Al-Surmi, Bednarek, Quaglio, and others. 
-
 It is possible that this analysis will not be suited to the specifics of the study. 
 Regardless, my hope is that the linguistic features laid out for the analysis will be helpful as they get at the question of register in a comprehensive way.
 
@@ -74,11 +73,11 @@ Creating this will require perfecting the pipelines below and then iterating tha
 
 Santa Barbara Corpus
 
-Download a transcript as a .txt file --> load it into R --> process the text to eliminate non-text characters --> combine into a single continuous string --> add to a data frame as one cell of a text column
+Download a transcript as a .txt file --> load it into R --> process the text to eliminate non-text characters and add punctuation where needed (sentence boundaries must be evident) --> combine into a single continuous string --> add to a data frame as one cell of a text column
 
 Scraps from the Loft
 
-Use [webscraping](https://djvill.github.io/r4ds/webscraping.html) to get a particular page (the transcript of one episode of a tv show) into a text format --> process the text to eliminate non-text characters --> combine into a single continuous string --> add to a data frame as one cell of a text column
+Use [webscraping](https://djvill.github.io/r4ds/webscraping.html) to get a particular page (the transcript of one episode of a tv show) into a text format --> load it into R --> process the text to eliminate non-text characters --> combine into a single continuous string --> add to a data frame as one cell of a text column
 
 **Iteration process**:
 
@@ -140,6 +139,13 @@ Analysis:
 
 The big hiccups I foresee are 1) the accuracy of the spacy tagging particularly given odd discourse features (might be the biggest problem in the natural discourse) 
 2) complications in webscraping which is something I haven't done before and seems quite complex.
+Aside from these concerns, another aspect of this project which is subject to change is how I code the TV show data throughout the analysis. 
+It would be possible to create discrete categorical variables within the TV show transcripts by giving them a label like 'genre'. 
+This would allow for an analysis that compares how 'dramaticity' may differ depending on the specific genre of TV show. 
+Most likely, this is beyond the scope of the study, but it is something I want to keep in mind. 
+Lastly, a small issue will be in determining the linguistic variables which represent 'dramaticity'.
+As of now, I have been vague about how that process will work, and it is something I am hoping more reading of the literature and a more comprehensive understanding of MDA will help with.
+
 
 Necessary Citations:
 Biber 1988
