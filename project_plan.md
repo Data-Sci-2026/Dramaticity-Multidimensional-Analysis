@@ -4,7 +4,7 @@
 
 ## Summary
 
-One elusive aspect of a artificial dialogue in TV shows and movies is a sense of how 'dramatic' or 'performative' the language is.
+One elusive aspect of artificial dialogue in TV shows and movies is a sense of how 'dramatic' or 'performative' the language is.
 This study involves trying to determine what linguistic features make a particular text sound more 'dramatic' or 'performative'.
 More specifically, what are the sorts of linguistic characteristics that make tv shows feel more 'performative' than real discourse. 
 Using a corpus of realistic speech data and a corpus of television show data, I plan to run a multidimensional analysis to detect lexical and grammatical differences that could suggest the 'dramatic' elements of different texts.
@@ -15,9 +15,11 @@ The data for this analysis will come from two corpora.
 First, I plan to draw natural discourse from the [Santa Barbara Corpus of Spoken American English](https://linguistics.ucsb.edu/research/santa-barbara-corpus-spoken-american-english).
 The corpus is made up of sixty transcripts composing 249,000 words. 
 It also contains useful metadata such as name, gender, age, hometown, home state, current state, education, years of education, occupation, and ethnicity.
+It is not likely I will make use of this for this analysis, but it is good to be aware of. 
 
 Second, the TV show data will come from [Scraps from the Loft](https://scrapsfromtheloft.com/tv-series-transcripts/).
-This website is a massive assembling of 3,264 completed episode transcripts from 315 different series.
+This website is a massive assembling of 3,264 completed episode transcripts from 315 different series. 
+I plan to select sixty episodes, each one from a different series, so that the number of documents is equal and, given the similarity in format, the word counts should be relatively balanced as well. 
 
 
 ## The Analysis
