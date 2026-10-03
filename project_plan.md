@@ -105,9 +105,26 @@ Data frame of 67 linguistic features
 | Natural 1 |     double      |        double       |        double      |          double       |        double        | double|
 |    ...    |      ...        |        ...          |          ...       |          ...          |         ...          |  ...  |
 
+
+#### Progress Report 3
+
+GOAL:
+For this project report, I will actually run the MDA, create several graphs to interpret the output, and identify co-occuring features which suggest "dramticity"
+
+Below is a pipeline for the steps needed to finish running the MDA
+
+Use `mda.loadings()` to get a factor summary (dependent on the # of factors identified as needed) --> use `arrange()` to put these in descending order 
+
+Analysis:
+
+- usse stickplot, heatmap, and boxplots to view the results 
+
+- based on past literature and Biber 1988 try to highlight features that suggest "dramaticity"
+
 ## Concluding Remarks
 
-The big hiccups I foresee are 1) the accuracy of the spacy tagging particularly given odd discourse features (might be the biggest problem in the natural discourse) and 2) complications in webscraping which is something I haven't done before and seems quite complex. 
+The big hiccups I foresee are 1) the accuracy of the spacy tagging particularly given odd discourse features (might be the biggest problem in the natural discourse) 
+2) complications in webscraping which is something I haven't done before and seems quite complex.
 
 Necessary Citations:
 Biber 1988
