@@ -57,7 +57,6 @@ For the first project report, I will have a complete data frame schematized as b
 | ID (TV Show or Natural) |                                   Text                                         |
 |-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 1         | "What did you say? I told you I'm through. What are you even doing here?..."   |
-|-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 2         | "What did you say? I told you I'm through. What are you even doing here?..."   |
 |-------------------------|--------------------------------------------------------------------------------|
 |       TV Show 3         | "What did you say? I told you I'm through. What are you even doing here?..."   |
