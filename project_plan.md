@@ -148,8 +148,13 @@ As of now, I have been vague about how that process will work, and it is somethi
 
 
 Necessary Citations:
+
 Biber 1988
+
 Santa Barabara Corpus
+
 Scraps from the Loft
+
 pybiber script
+
 mda.biber package
