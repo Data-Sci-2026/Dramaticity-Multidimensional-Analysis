@@ -12,11 +12,11 @@ Using a corpus of realistic speech data and a corpus of television show data, I 
 
 ## Research Questions and Ultimate Goal
 
-  RQ1: What are the linguistic features that co-vary to distinguish a natural discourse from a TV show discourse?
+  **RQ1**: What are the linguistic features that co-vary to distinguish a natural discourse from a TV show discourse?
   
-  RQ2: Of these features, which ones can be identified as particular markers of dramaticity. 
+  **RQ2**: Of these features, which ones can be identified as particular markers of dramaticity. 
   
-  RQ3 (optionally): Do specific genres of TV show seem to be more distinctly dramatic compared to natural discourse than others?
+  (optionally) **RQ3**: Do specific genres of TV show seem to be more distinctly dramatic compared to natural discourse than others?
   
 In understanding the linguistic features that contribute to dramaticity in spoken registers, we gain a more concrete understanding of how finely tuned our brains are to encoding each piece of language and indexing that with a particular association.
 I feel that the dramatic nature of certain registers is something that has been underrepresented in the literature.
