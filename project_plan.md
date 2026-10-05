@@ -4,10 +4,23 @@
 
 ## Summary
 
-One elusive aspect of artificial dialogue in TV shows and movies is a sense of how 'dramatic' or 'performative' the language is.
-This study involves trying to determine what linguistic features make a particular text sound more 'dramatic' or 'performative'.
-More specifically, what are the sorts of linguistic characteristics that make tv shows feel more 'performative' than real discourse. 
-Using a corpus of realistic speech data and a corpus of television show data, I plan to run a multidimensional analysis to detect lexical and grammatical differences that could suggest the 'dramatic' elements of different texts.
+One elusive aspect of artificial dialogue in TV shows and movies is a sense of how *dramatic* or *performative* the language is.
+This study involves trying to determine what linguistic features make a particular text sound more *dramatic* or *performative* (from now on the term dramatic or dramaticity will be used by default).
+More specifically, what are the sorts of linguistic characteristics that make TV shows feel more dramatic than real discourse. 
+
+Using a corpus of realistic speech data and a corpus of television show data, I plan to run a multidimensional analysis to detect linguistic differences that could suggest the dramatic elements of different texts.
+
+## Research Questions and Ultimate Goal
+
+  RQ1: What are the linguistic features that co-vary to distinguish a natural discourse from a TV show discourse?
+  
+  RQ2: Of these features, which ones can be identified as particular markers of dramaticity. 
+  
+  RQ3 (optionally): Do specific genres of TV show seem to be more distinctly dramatic compared to natural discourse than others?
+  
+In understanding the linguistic features that contribute to dramaticity in spoken registers, we gain a more concrete understanding of how finely tuned our brains are to encoding each piece of language and indexing that with a particular association.
+I feel that the dramatic nature of certain registers is something that has been underrepresented in the literature.
+Therefore, this study will hopefully form a starting point to filling a gap in our understanding of how we perceive dramatic language in speech.
 
 ## Overview of the Data
 
