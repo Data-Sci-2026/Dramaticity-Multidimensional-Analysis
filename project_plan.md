@@ -152,7 +152,7 @@ Analysis:
 
 The big hiccups I foresee are 1) the accuracy of the spacy tagging particularly given odd discourse features (might be the biggest problem in the natural discourse) 
 2) complications in webscraping which is something I haven't done before and seems quite complex.
-Aside from these concerns, another aspect of this project which is subject to change is how I code the TV show data throughout the analysis. 
+Aside from these concerns, another aspect of this project which is subject to change is how I code the TV show data throughout the analysis (hinted at in the optional third research question). 
 It would be possible to create discrete categorical variables within the TV show transcripts by giving them a label like 'genre'. 
 This would allow for an analysis that compares how 'dramaticity' may differ depending on the specific genre of TV show. 
 Most likely, this is beyond the scope of the study, but it is something I want to keep in mind. 
