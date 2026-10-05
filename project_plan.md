@@ -51,7 +51,11 @@ Once these dimension scores are determined, I intend to identify the linguistic 
 It is possible that this analysis will not be suited to the specifics of the study. 
 Regardless, my hope is that the linguistic features laid out for the analysis will be helpful as they get at the question of register in a comprehensive way.
 
-I predict that the TV show corpus as a whole will feature more 'dramatic' language however that will likely vary based on genre and context.
+  **Hypothesis**:
+  
+I predict that the TV show corpus as a whole will feature more 'dramatic' language.
+General emphatics and amplifiers are very likely to predict dramticity. 
+Finally, the extent to which it differs will likely differ by genre. 
 
 ## Data Wrangling
 
