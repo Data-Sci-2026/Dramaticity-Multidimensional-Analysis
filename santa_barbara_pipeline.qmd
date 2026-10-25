@@ -1,0 +1,261 @@
+---
+title: "Santa Barbara Pipeline"
+author: "Zach Shultz"
+date: 10/25/2026
+format: gfm
+---
+
+prereqs
+```{r}
+library(tidyverse)
+```
+
+
+## Intro
+
+This document is a place for process for creating the Santa Barabara Code pipeline. 
+
+## Reading in the data
+
+There were two different file types provided for the Santa Barbara Corpus- .trn and .cha. I decided to use .trn files since they seemed to read in more naturally as a data frame. 
+
+```{r}
+trn_df <-  read_delim(file, col_names = FALSE)
+#reads in a single trn file and lets R decide the column names
+```
+
+Originally, I named the columns. However, I later realized that some of the files had different delimiters which changed the number of columns as a result from 3 to 4. To fix this, I simply let R named the files and incorporated a [if else]() statement for dealing with this discrepency.
+
+## Cleaning the text
+
+The next step was to create a function called `clean()` that would clean each line of the transcript. This process started with identifying symbols that were not part of the actual dialogue and then figuring out what they meant. I listened to audio versions of the first .trn file to get a sense of any transcription markings I wasn't familiar with. Ultimately, I ended up with the following function for cleaning the lines. 
+
+It was necessary to create two functions inside of `clean()` in order to repeat phrases that were marked with a # words # pattern. These are described in detail below and in the final code. 
+
+```{r}
+repetitions <- function(string) {
+  group <- string |>
+  str_extract_all("([1-9])[^X]*\\1")
+  #find the pattern we're looking for
+  times <- group |>
+  str_extract("[1-9]")
+  #figure out the marking of how many times it should occur
+  times <- as.numeric(times)
+  #turn that marking into an actual number
+  multiple <- strrep(group, times)
+  #multiply that string by the multiple
+  group <- string |>
+  str_extract_all("([1-9])[^X]*\\1")
+  #redefine the pattern we're looking for because group had to be renamed before (this is probably redundant but I'm confused rn so I don't wanna figure out the better way)
+  string |>
+    str_replace_all("([1-9])[^X]*\\1", multiple)
+  #replace the initial string with what we want
+}
+enact_repeats <- function(string) {
+  if_else(str_detect(string, "([1-9])[^X]*\\1"), repetitions(string), string)
+}
+#enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
+clean <- function(string) {
+  string |>
+  str_replace_all("[1-9]X+[1-9]", "") |>
+  #before anything, get rid of the #X# combinations cause that causes problems
+  enact_repeats()|>
+  str_replace_all("\\([^)]*\\)", "") |>
+  #replace a ( followed by any number of any characters but a ) and then a )
+  str_replace_all("<[^ ]*", "") |>
+  #replace any < followed by any number of characters but space
+  str_replace_all("[^ ]*>", "") |>
+  #replace any number of characters but a space immediately before a >
+  str_replace_all("_. |_", " ") |>
+  #replace an underscore followed by a single character or an underscore by itself
+  str_replace_all("~[^ ]*", "") |>
+  #replace a tilde followed by any character but a space with an empty string
+  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
+  #remove each of the symbols inside, all of them
+  str_remove_all("\\.\\.+") |>
+  #remove two or more literal dots, all of them
+  str_replace_all("!(\\w)", "\\1") |>
+  str_remove_all("--+") |>
+  #remove two or more dashes, all of them
+  str_replace_all("^ | $", "") |>
+  #remove all spaces at the beginning or end of the line
+  str_replace_all("[1-9]", " ") |>
+  #replace spaces at the beginning and end of a line with no spaces
+  str_replace_all("[ ]+", " ") |>
+  #replace any space larger than one spaces with single spaces
+  str_replace_all(" \\.", "\\.") |>
+  str_replace_all(" \\,", "\\,") 
+  #replaces any space before a period or comma with no space
+}
+```
+
+Once each individual line was cleaned, the code below as implemented to get rid of white space, empty lines, and make sure only the `clean_words` column was selected. 
+
+```{r}
+trn_text <- clean_trn_wrds |>
+  select(!words) |>
+  #get rid of messy version of each line
+  mutate(clean_words = trimws(clean_words)) |>
+  #trim white space 
+  filter(!clean_words == '') |>
+  #filter out empty lines
+  mutate(trn = "x",
+         .before = clean_words)
+  #add a column fill in for unifying these features
+```
+
+## Merging the text
+
+With the text being clean, the last line of code in the previous chunk was added to prepare for the following code. 
+
+```{r}
+trn_text <- trn_text |>
+  summarize(clean_words = str_flatten(clean_words, " "))
+  #returns a single cell data frame of all of the dialogue combined with spaces
+```
+
+This successfully collapses the data frame into a single observation. 
+
+
+## Making the id column
+
+In order to make an id column that kept track of which .trn file was being observed, the code below was implemented. 
+
+```{r}
+trn <- str_extract(file, "\\d+")
+
+trn_df <- trn_text |>
+  mutate(id = str_flatten(c("trn", trn), "_"),
+         .before = "clean_words")
+```
+
+
+
+
+
+
+
+## The final Function
+
+```{r}
+#creating a function to get the cleaned up words into a data frame all together
+get_clean_wrds <- function(file) {
+
+#reading in a file as a data frame
+
+trn <- str_extract(file, "\\d+")
+#reads 
+  
+trn_df <-  read_delim(file, col_names = FALSE)
+#read in a file as a df
+
+trn_wrds <- trn_df |>
+  select(matches("X3|X4"))
+  #we are selecting the third or fourth automatically named column. Most files will only select three, but some have a delimiting issue so there is an extra column (time stamps gets split)
+
+#this function deals with the aformentioned data frames which still have two columns. If it detects two columns, it will automatically select the fourth one. Otherwise, it will proceed as normal
+restrict_col <- function(df) {
+  if (ncol(df) == 2) {
+  #if the number of columns is exactly 2
+    select(df, 2)}
+    #select the second column
+  else 
+  #otherwise,
+  {x}
+    #just leave things the same
+  }
+
+trn_wrds <- restrict_col(trn_wrds) |>
+  #limit columns to one as described in functions above
+  select(words = 1)
+#rename our column to words
+
+# Function Definitions
+
+#repetitions takes a given string and multiplies it by numbers that surround the string
+repetitions <- function(string) {
+  group <- string |>
+  str_extract_all("([1-9])[^X]*\\1")
+  #find the pattern we're looking for
+  times <- group |>
+  str_extract("[1-9]")
+  #figure out the marking of how many times it should occur
+  times <- as.numeric(times)
+  #turn that marking into an actual number
+  multiple <- strrep(group, times)
+  #multiply that string by the multiple
+  group <- string |>
+  str_extract_all("([1-9])[^X]*\\1")
+  #redefine the pattern we're looking for because group had to be renamed before (this is probably redundant but I'm confused rn so I don't wanna figure out the better way)
+  string |>
+    str_replace_all("([1-9])[^X]*\\1", multiple)
+  #replace the initial string with what we want
+}
+enact_repeats <- function(string) {
+  if_else(str_detect(string, "([1-9])[^X]*\\1"), repetitions(string), string)
+}
+#enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
+clean <- function(string) {
+  string |>
+  str_replace_all("[1-9]X+[1-9]", "") |>
+  #before anything, get rid of the #X# combinations cause that causes problems
+  enact_repeats()|>
+  str_replace_all("\\([^)]*\\)", "") |>
+  #replace a ( followed by any number of any characters but a ) and then a )
+  str_replace_all("<[^ ]*", "") |>
+  #replace any < followed by any number of characters but space
+  str_replace_all("[^ ]*>", "") |>
+  #replace any number of characters but a space immediately before a >
+  str_replace_all("_. |_", " ") |>
+  #replace an underscore followed by a single character or an underscore by itself
+  str_replace_all("~[^ ]*", "") |>
+  #replace a tilde followed by any character but a space with an empty string
+  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
+  #remove each of the symbols inside, all of them
+  str_remove_all("\\.\\.+") |>
+  #remove two or more literal dots, all of them
+  str_replace_all("!(\\w)", "\\1") |>
+  str_remove_all("--+") |>
+  #remove two or more dashes, all of them
+  str_replace_all("^ | $", "") |>
+  #remove all spaces at the beginning or end of the line
+  str_replace_all("[1-9]", " ") |>
+  #replace spaces at the beginning and end of a line with no spaces
+  str_replace_all("[ ]+", " ") |>
+  #replace any space larger than one spaces with single spaces
+  str_replace_all(" \\.", "\\.") |>
+  str_replace_all(" \\,", "\\,") 
+  #replaces any space before a period or comma with no space
+}
+#clean cleans up a data frame column made up of transcription markings to make it as close as possible to only dialogue. 
+
+#Using clean() to clean up a data frame
+
+clean_trn_wrds <- trn_wrds |>
+  mutate(clean_words = clean(words))
+
+#Getting the rows of dialogue into a single cell of dialogue
+
+trn_text <- clean_trn_wrds |>
+  select(!words) |>
+  #get rid of messy version of each line
+  mutate(clean_words = trimws(clean_words)) |>
+  #trim white space 
+  filter(!clean_words == '') |>
+  #filter out empty lines
+  mutate(trn = "x",
+         .before = clean_words)
+  #add a column fill in for unifying these features
+
+trn_text <- trn_text |>
+  summarize(clean_words = str_flatten(clean_words, " "))
+  #returns a single cell data frame of all of the dialogue combined with spaces
+
+trn_df <- trn_text |>
+  mutate(id = str_flatten(c("trn", trn), "_"),
+         .before = "clean_words")
+
+trn_df
+}
+```
+
