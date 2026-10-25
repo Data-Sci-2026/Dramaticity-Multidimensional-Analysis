@@ -1,0 +1,91 @@
+---
+title: "Scraps from the Loft Pipeline"
+author: "Zach Shultz"
+date: 10/25/2026
+format: gfm
+---
+
+prereqs
+```{r}
+library(tidyverse)
+library(rvest)
+```
+
+## Intro
+
+This document is a place for the pipeline to create the Scraps from the Loft data frame. 
+
+
+
+## The Final Function and Iteration
+
+```{r}
+get_clean_script <- function(html) {
+  
+  show <- read_html(html)
+  #reads in the website
+  
+  series <- str_remove(html, "https://scrapsfromtheloft.com/tv-series/") |>
+            #removes the first part of the html link which is identical accross transcripts
+    str_replace("-s\\d.+-", "-") |>
+    #replaces -s followed by a digit followed by any number of characters and then a - with a single -
+    str_remove("/") |>
+    #removes remaining /
+    str_replace_all("-", "_")
+    #replaces all -'s with _'s
+  
+  show_script <- show |>
+  html_elements(".single-content p") |>
+  #find all elements on the web page that are actually dialogue
+  html_text2()
+  #turn those elements into only text
+  
+  show_df <- data.frame(show_script) 
+  #turn our character vector into a df
+  
+  show_df <- show_df |>
+  slice(-(1:4))
+  #removes the first four rows which are not actually dialogue from the show
+  
+  #defines a function for cleaning each string in our df
+  clean <- function(string) {
+  string |>
+  str_replace_all("\\[.*?\\]", "") |>
+  #remove a [ followed by any number of any characters and then a ]
+  str_replace_all("♪[^♪]*♪", "") |>
+  #removes a ♪ followed by any number of characters followed by ♪
+  str_replace_all("\\([^)]*\\)", "") |>
+  #removes a ( followed by any number of characters followed by )
+  str_replace("^[A-Z]+ ?[1-9]?:", "")
+}
+  
+  show_df <- show_df |>
+    mutate(show_script = 
+             clean(show_script)) |>
+    #cleans up all the lines with the function above
+    mutate(show_script = 
+             trimws(show_script)) |>
+    #removes extra white space
+    filter(!show_script == '') 
+    #removes lines with no text
+  
+  show_df |>
+    mutate(script = "x",
+         .before = show_script)
+  #add a column fill in for unifying these features
+
+  show_df <- show_df |>
+  summarize(show_script = str_flatten(show_script, " "))
+  #returns a single cell data frame of all of the dialogue combined with spaces
+  
+  show_df <- show_df |>
+  mutate(id = series,
+         #adds a new column that gives the id based on the series
+         .before = "show_script") |>
+  rename("clean_words" = show_script)
+  #renames to clean_words so we can rbind this thing with the santa barbara df eventually making one big df!!!
+  
+  show_df
+}
+```
+
