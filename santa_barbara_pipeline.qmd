@@ -17,9 +17,11 @@ This document is a place for process for creating the Santa Barabara Code pipeli
 
 ## Reading in the data
 
-There were two different file types provided for the Santa Barbara Corpus- .trn and .cha. I decided to use .trn files since they seemed to read in more naturally as a data frame. 
+There were two different file types provided for the Santa Barbara Corpus- .trn and .cha. I decided to use .trn files since they seemed to read in more naturally as a data frame. For the purposes of this document, we can use the test .trn file I used, the first .trn.
 
 ```{r}
+file <- "SBCorpus/TRN/SBC001.trn"
+
 trn_df <-  read_delim(file, col_names = FALSE)
 #reads in a single trn file and lets R decide the column names
 ```

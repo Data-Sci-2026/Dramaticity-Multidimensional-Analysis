@@ -15,6 +15,56 @@ library(rvest)
 
 This document is a place for the pipeline to create the Scraps from the Loft data frame. 
 
+## Reading in the Data
+
+The code below shows how to do this with html filling in for a link to the page with the transcript. For the purposes of this document, we can look at the test page I used, the Adults Episode 4 transcript. 
+
+
+```{r}
+html <- "https://scrapsfromtheloft.com/tv-series/adults-s01e04-house-rules-transcript/"
+
+show <- read_html(html)
+  #reads in the website
+```
+
+## Finding the right Elements and Transformation
+
+Using selector gadget, I was able to find the correct elements I wanted to target fairly quickly as shown in the code below. 
+
+```{r}
+show_script <- show |>
+  html_elements(".single-content p") |>
+  #find all elements on the web page that are actually dialogue
+  html_text2()
+  #turn those elements into only text
+
+show_df <- data.frame(show_script) 
+  #turn our character vector into a df
+```
+
+I also transformed this into a data frame. While this probably wasn't strictly necessary, it made it easier to borrow code from the [Santa Barbara Pipeline]() which saved time and energy. Hopefully, it also makes these twin pipelines easier to follow. 
+
+The next step was to eliminate the first four lines. Luckily, in every transcript the first four lines are dedicated to the same structure, making it easy to leave only the text we want. 
+
+```{r}
+show_df <- show_df |>
+  slice(-(1:4))
+  #removes the first four rows which are not actually dialogue from the show
+```
+
+
+## Cleaning the Data
+
+```{r}
+clean <- function(string) {
+  string |>
+  str_replace_all("\\[.*?\\]", "") |>
+  #remove a [ followed by any number of any characters and then a ]
+  str_replace_all("♪[^♪]*♪", "") |>
+  #removes a ♪ followed by any number of characters followed by ♪
+  str_replace_all("\\([^)]*\\)", "") |>
+  #removes a ( followed by any number of characters followed by )
+```
 
 
 ## The Final Function and Iteration
