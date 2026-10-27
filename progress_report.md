@@ -2,13 +2,13 @@
 
 ## Progress report 1
 
-At this point in the project, I have collected the data I want from both the Santa Barbara Corpus and the Scraps from the Loft website as detailed in my [project_plan](progress_report.md).
+At this point in the project, I have collected the data I want from both the Santa Barbara Corpus and the Scraps from the Loft website as detailed in my [project_plan](project_plan.md).
 As planned, I have created a pipeline for each set of transcripts which cleans up the files, formats each transcript's text as a single cell, and combines all of them into a single data frame. 
 It is easiest to explain the progress for each source individually. 
 
 ## Santa Barbara Pipeline
 
-For the [Santa Barbara pipeline](project_plan.qmd), I downloaded a zip file of all 60 trn files. 
+For the [Santa Barbara pipeline](santa_barbara_pipeline.qmd), I downloaded a zip file of all 60 trn files. 
 When a file was read in as a data frame, it had each line in a different cell. 
 I wrote a function, `clean()`, that would go through each line and remove/transform transcription symbols. 
 Then I placed that within a larger function, `get_clean_wrds()`, that would also remove white space, empty lines, and flatten the data frame into a single row.
@@ -26,7 +26,7 @@ Finally, I mapped `get_clean_script()` over all of the html links to those TV sh
 
 ## One Big Data Frame
 
-As a final step, I combined the two data frames from these pipelines into a single df called `all_files`. 
+As a final step, I combined the two data frames from these pipelines into a single df called `all_transcripts`. 
 The end result is a data frame that has a name for each file in one column (called id) and the text for that particular file written in a way that can be parsed for the next step of the project. 
 
 ## Next Steps

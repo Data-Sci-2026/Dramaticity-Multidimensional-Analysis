@@ -20,13 +20,15 @@ This document is a place for process for creating the Santa Barabara Code pipeli
 There were two different file types provided for the Santa Barbara Corpus- .trn and .cha. I decided to use .trn files since they seemed to read in more naturally as a data frame. For the purposes of this document, we can use the test .trn file I used, the first .trn.
 
 ```{r}
-file <- "SBCorpus/TRN/SBC001.trn"
+file <- "private/SBCorpus/TRN/SBC001.trn"
 
 trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
 #reads in a single trn file and lets R decide the column names
+
+trn_df
 ```
 
-Originally, I named the columns. However, I later realized that some of the files had different delimiters which changed the number of columns as a result from 3 to 4. To fix this, I simply let R named the files and incorporated a [if else]() statement for dealing with this discrepancy.
+Originally, I named the columns. However, I later realized that some of the files had different delimiters which changed the number of columns as a result from 3 to 2 or 4. To fix this, I simply had R select the final column, which was always the words. 
 
 Also worth noting that I originally did not specify the delimiter. This was a big mistake. The last file has a weird unicode symbol thrown in for some reason and it took a while to figure out that I just needed to specify the delimiter (and add some regex to clean up the unicode). 
 
@@ -95,6 +97,22 @@ clean <- function(string) {
 }
 ```
 
+In order to clean the column, we first select only the last column (defined by `columns`) and then use the function outlined above. 
+
+```{r}
+columns <- ncol(trn_df)
+
+trn_wrds <- trn_df |>
+  select(words = columns)
+
+clean_trn_wrds <- trn_wrds |>
+  mutate(clean_words = clean(words))
+
+clean_trn_wrds
+```
+
+Above, we see the clean version in the second column!
+
 Once each individual line was cleaned, the code below as implemented to get rid of white space, empty lines, and make sure only the `clean_words` column was selected. 
 
 ```{r}
@@ -108,6 +126,8 @@ trn_text <- clean_trn_wrds |>
   mutate(trn = "x",
          .before = clean_words)
   #add a column fill in for unifying these features
+
+trn_text
 ```
 
 ## Merging the text
@@ -118,6 +138,8 @@ With the text being clean, the last line of code in the previous chunk was added
 trn_text <- trn_text |>
   summarize(clean_words = str_flatten(clean_words, " "))
   #returns a single cell data frame of all of the dialogue combined with spaces
+
+trn_text
 ```
 
 This successfully collapses the data frame into a single observation. 
@@ -128,6 +150,7 @@ This successfully collapses the data frame into a single observation.
 In order to make an id column that kept track of which .trn file was being observed, the code below was implemented. 
 
 ```{r}
+
 trn <- str_extract(file, "\\d+")
 #takes the thee numbers attached to each .trn
 
@@ -135,6 +158,8 @@ trn_df <- trn_text |>
   mutate(id = str_flatten(c("trn", trn), "_"),
          .before = "clean_words")
 #creates a full name for each doc as trn_###
+
+trn_df
 ```
 
 
@@ -147,31 +172,15 @@ get_clean_wrds <- function(file) {
 #reading in a file as a data frame
 
 trn <- str_extract(file, "\\d+")
-#takes the thee numbers attached to each .trn
   
 trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
 #read in a file as a df
 
+columns <- ncol(trn_df)
+#ok we're trying something much simpler than we had before. At this point the pattern can be described as "select a column number equal to the number of columns because we always want the last column. So if we just get ourselves that variable and then just select that, we should be fine
+
 trn_wrds <- trn_df |>
-  select(matches("X3|X4"))
-  #we are selecting the third or fourth automatically named column. Most files will only select three, but some have a delimiting issue so there is an extra column (time stamps gets split)
-
-#this function deals with the aformentioned data frames which still have two columns. If it detects two columns, it will automatically select the fourth one. Otherwise, it will proceed as normal
-restrict_col <- function(df) {
-  if (ncol(df) == 2) {
-  #if the number of columns is exactly 2
-    select(df, 2)}
-    #select the second column
-  else 
-  #otherwise,
-  {x}
-    #just leave things the same
-  }
-
-trn_wrds <- restrict_col(trn_wrds) |>
-  #limit columns to one as described in functions above
-  select(words = 1)
-#rename our column to words
+  select(words = columns)
 
 # Function Definitions
 
@@ -225,7 +234,7 @@ clean <- function(string) {
   str_replace_all("^ | $", "") |>
   #remove all spaces at the beginning or end of the line
   str_replace_all("[1-9]", " ") |>
-  #replace spaces at the beginning and end of a line with no spaces
+  #removes numbers
   str_replace_all("[ ]+", " ") |>
   #replace any space larger than one spaces with single spaces
   str_replace_all(" \\.", "\\.") |>
@@ -259,7 +268,6 @@ trn_text <- trn_text |>
 trn_df <- trn_text |>
   mutate(id = str_flatten(c("trn", trn), "_"),
          .before = "clean_words")
-  #creates a full name for each doc as trn_###
 
 trn_df
 }
@@ -268,6 +276,8 @@ trn_df
 The code below was used to create a list of every file name from the zip folder. 
 
 ```{r}
+#| eval: false
+
 files = list.files("SBCorpus/TRN", full.names = TRUE)
 #here we go into the file TRN and pull out all of the full names for the files
 files
@@ -276,6 +286,8 @@ files
 And finally, the code below was used to map this function onto every file in the files list. 
 
 ```{r}
+#| eval: false
+
 list_files <- files |>
   map(get_clean_wrds) 
 
@@ -287,5 +299,5 @@ all_trns
 
 ## Overview of the Data
 
-The resulting data frame is made up of the sixty trn files. 
+The resulting data frame is made up of the sixty observations of individual trn files. The file number is listed under the `id` column. In the `clean_wrds` column, the clean text of each file is included. In total, we have approximately  249,000 word tokens in the text section.  
 

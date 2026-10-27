@@ -40,11 +40,11 @@ show_script <- show |>
 
 show_df <- data.frame(show_script) 
   #turn our character vector into a df
-
-show_df
 ```
 
-I also transformed this into a data frame. While this probably wasn't strictly necessary, it made it easier to borrow code from the [Santa Barbara Pipeline]() which saved time and energy. Hopefully, it also makes these twin pipelines easier to follow. 
+I also transformed this into a data frame. While this probably wasn't strictly necessary, it made it easier to borrow code from the [Santa Barbara Pipeline](santa_barbara_pipeline.qmd) which saved time and energy. Hopefully, it also makes these twin pipelines easier to follow. 
+
+## Cleaning the Data
 
 The next step was to eliminate the first four lines. Luckily, in every transcript the first four lines are dedicated to the same structure, making it easy to leave only the text we want. 
 
@@ -52,12 +52,8 @@ The next step was to eliminate the first four lines. Luckily, in every transcrip
 show_df <- show_df |>
   slice(-(1:4))
   #removes the first four rows which are not actually dialogue from the show
-
-show_df
 ```
 
-
-## Cleaning the Data
 
 ```{r}
 clean <- function(string) {
@@ -66,7 +62,7 @@ clean <- function(string) {
   #remove a [ followed by any number of any characters and then a ]
   str_replace_all("♪[^♪]*♪", "") |>
   #removes a ♪ followed by any number of characters followed by ♪
-  str_replace_all("\\([^)]*\\)", "") |>
+  str_replace_all("\\([^)]*\\)", "")
   #removes a ( followed by any number of characters followed by )
 }
 ```
@@ -147,6 +143,40 @@ get_clean_script(html)
 ```
 
 
+## Deciding on TV shows and Iteration
+
+To compile a list of TV shows I would want to include, I compiled a list of the available TV shows that would be relevant to the study. Their relevance was determined using criteria in the [Project Plan document](project_plan.md). I also included the genre of each show (derived from the Wikipedia site of the TV show) which allowed me to ensure a nearly even number of drama TV shows and comedy TV shows. Since there were only 27 comedy TV shows, I included all of them. I then randomly selected 33 of the remaining drama TV shows with the following code.
+
+```{r}
+#| eval: false
+
+set.seed(20)
+#just chose a random seed so that we get the same random result every time we run this
+dramas <- tv_show_df |>
+  filter(str_detect(genre, "drama") & !str_detect(genre, "comedy")) |>
+  #filters only shows that included the genre drama and not the genre comedy
+  slice_sample(n = 32)
+  #randomly selects 32 of these
+
+dramas
+```
+
+
+Finally a compiled a list of the actual html links for each episode. Unfortunately, since each link referred to a specific episode and there was no clear way to know which episodes were included, this process had to be done manually. Once this list of links was compiled, I was able to iterate using the following mapping code. 
+
+```{r}
+#| eval: false
+
+x <- episode_links |>
+  map(get_clean_script) 
+
+y <- do.call(rbind, x)
+
+y
+```
+
+
 ## Overview of the Data
 
+The resulting data frame is made up of the sixty observations of individual scraped webpages The TV show title is listed under the `id` column. In the `clean_wrds` column, the clean text of each page is included. Importantly, these are divided up roughly evenly my genre. I intend to add the genre information to the ID and to get a summary of how many tokens are in each observation as immediate next steps. 
 
