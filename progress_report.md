@@ -8,7 +8,7 @@ It is easiest to explain the progress for each source individually.
 
 ## Santa Barbara Pipeline
 
-For the [Santa Barbara pipeline](santa_barbara_pipeline.qmd), I downloaded a zip file of all 60 trn files. 
+For the [Santa Barbara pipeline](santa_barbara_pipeline.md), I downloaded a zip file of all 60 trn files. 
 When a file was read in as a data frame, it had each line in a different cell. 
 I wrote a function, `clean()`, that would go through each line and remove/transform transcription symbols. 
 Then I placed that within a larger function, `get_clean_wrds()`, that would also remove white space, empty lines, and flatten the data frame into a single row.
@@ -16,7 +16,7 @@ Finally, I mapped `get_clean_wrds()` over all 60 files and used `rbind()` to for
 
 ## Scraps from the Loft pipeline
 
-For the [Scraps from the Loft pipeline](scraps_from_loft_pipeline.qmd), I used `rvest` to read in the html code and specify only the elements that held text. 
+For the [Scraps from the Loft pipeline](scraps_from_loft_pipeline.md), I used `rvest` to read in the html code and specify only the elements that held text. 
 Then, I wrote a function called `clean()` that could go through each line and remove some unwanted formatting. 
 As before, I then placed that within a larger function, `get_clean_script()`, that would again flatten the text of each transcript into a single cell. 
 As an added step for this pipeline, I had to decide on which TV shows to include. 
