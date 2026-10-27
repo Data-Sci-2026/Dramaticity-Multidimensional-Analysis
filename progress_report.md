@@ -10,7 +10,7 @@ It is easiest to explain the progress relative to each source individually.
 
 For the [Santa Barbara pipeline](), I downloaded a zip file of all 60 trn files. 
 When a file was read in as a data frame, it had each line in a different cell. 
-I write a function, `clean()`, that would go through each line and remove/transform unwanted transcriptions. 
+I wrote a function, `clean()`, that would go through each line and remove/transform transcription symbols. 
 Then I placed that within a larger function, `get_clean_wrds()`, that would also remove white space, empty lines, and flatten the data frame into a single row.
 Finally, I mapped `get_clean_wrds()` over all 60 files and used `rbind()` to form a single data frame where each observation is a file with `id` and `clean_words` as the two columns. 
 
@@ -21,7 +21,7 @@ Then, I wrote a function called `clean()` that could go through each line and re
 As before, I then placed that within a larger function, `get_clean_script()`, that would again flatten the text of each transcript into a single cell. 
 As an added step for this pipeline, I had to decide on which TV shows to include. 
 I decided to try to divide the tv shows as evenly as possible between comedy and drama genres.
-Ultimately, after randomly selecting from shows which fit the criteria described in my [project_plan](), I had 27 comedies and 33 dramas. 
+Ultimately, after randomly selecting from shows which fit the criteria described in my [project_plan](project_plan.md), I had 27 comedies and 33 dramas. 
 Finally, I mapped `get_clean_script()` over all of the html links to those TV show transcripts and got a single data frame where each observation is a file with `id` and `clean_words` as the two columns.
 
 ## One Big Data Frame
@@ -31,7 +31,7 @@ The end result is a data frame that has a name for each file in one column (call
 
 ## Next Steps
 
-The next step will be running this large data frame through the python pipeline described in the [project_plan]().
+The next step will be running this large data frame through the python pipeline described in the [project_plan](project_plan.md).
 One step will be to strip the id section down so that it only tags for "transcript" (Scraps from the Loft) and "trn" (Santa Barbara). 
 At this point, I will also need to do some more thorough decision making about the multidimensional analysis.
 In particular, I need to decide if I am only comparing natural discourse to TV show discourse or if I am making multiple levels within TV show discourse. 

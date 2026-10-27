@@ -22,11 +22,13 @@ There were two different file types provided for the Santa Barbara Corpus- .trn 
 ```{r}
 file <- "SBCorpus/TRN/SBC001.trn"
 
-trn_df <-  read_delim(file, col_names = FALSE)
+trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
 #reads in a single trn file and lets R decide the column names
 ```
 
-Originally, I named the columns. However, I later realized that some of the files had different delimiters which changed the number of columns as a result from 3 to 4. To fix this, I simply let R named the files and incorporated a [if else]() statement for dealing with this discrepency.
+Originally, I named the columns. However, I later realized that some of the files had different delimiters which changed the number of columns as a result from 3 to 4. To fix this, I simply let R named the files and incorporated a [if else]() statement for dealing with this discrepancy.
+
+Also worth noting that I originally did not specify the delimiter. This was a big mistake. The last file has a weird unicode symbol thrown in for some reason and it took a while to figure out that I just needed to specify the delimiter (and add some regex to clean up the unicode). 
 
 ## Cleaning the text
 
@@ -59,6 +61,8 @@ enact_repeats <- function(string) {
 #enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
 clean <- function(string) {
   string |>
+  str_replace_all("\x92", "'") |>
+  #replaces a specific unicode symbol with apostrophe's because ONE of the files uses this
   str_replace_all("[1-9]X+[1-9]", "") |>
   #before anything, get rid of the #X# combinations cause that causes problems
   enact_repeats()|>
@@ -145,7 +149,7 @@ get_clean_wrds <- function(file) {
 trn <- str_extract(file, "\\d+")
 #takes the thee numbers attached to each .trn
   
-trn_df <-  read_delim(file, col_names = FALSE)
+trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
 #read in a file as a df
 
 trn_wrds <- trn_df |>
@@ -196,6 +200,8 @@ enact_repeats <- function(string) {
 #enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
 clean <- function(string) {
   string |>
+  str_replace_all("\x92", "'") |>
+  #replaces a very specific unicode symbol with apostrophe's because ONE of the files uses this
   str_replace_all("[1-9]X+[1-9]", "") |>
   #before anything, get rid of the #X# combinations cause that causes problems
   enact_repeats()|>
