@@ -40,6 +40,8 @@ show_script <- show |>
 
 show_df <- data.frame(show_script) 
   #turn our character vector into a df
+
+show_df
 ```
 
 I also transformed this into a data frame. While this probably wasn't strictly necessary, it made it easier to borrow code from the [Santa Barbara Pipeline]() which saved time and energy. Hopefully, it also makes these twin pipelines easier to follow. 
@@ -50,6 +52,8 @@ The next step was to eliminate the first four lines. Luckily, in every transcrip
 show_df <- show_df |>
   slice(-(1:4))
   #removes the first four rows which are not actually dialogue from the show
+
+show_df
 ```
 
 
@@ -64,6 +68,7 @@ clean <- function(string) {
   #removes a ♪ followed by any number of characters followed by ♪
   str_replace_all("\\([^)]*\\)", "") |>
   #removes a ( followed by any number of characters followed by )
+}
 ```
 
 
@@ -137,5 +142,11 @@ get_clean_script <- function(html) {
   
   show_df
 }
+
+get_clean_script(html)
 ```
+
+
+## Overview of the Data
+
 

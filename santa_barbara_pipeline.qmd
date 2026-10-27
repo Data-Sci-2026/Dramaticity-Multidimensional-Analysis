@@ -287,5 +287,5 @@ all_trns
 
 ## Overview of the Data
 
-The resulting data frame is made up of
+The resulting data frame is made up of the sixty trn files. 
 
