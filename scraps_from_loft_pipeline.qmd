@@ -62,8 +62,10 @@ clean <- function(string) {
   #remove a [ followed by any number of any characters and then a ]
   str_replace_all("♪[^♪]*♪", "") |>
   #removes a ♪ followed by any number of characters followed by ♪
-  str_replace_all("\\([^)]*\\)", "")
+  str_replace_all("\\([^)]*\\)", "") |>
   #removes a ( followed by any number of characters followed by )
+  str_replace("^[A-Z\\.’]+( [A-Z\\.]+)? ?[1-9]?:", "")
+  #removes capital letter words (with periods and apostrophe's inside for words like R.J. and BELINDA'S) that begin a line and are followed by a colon!
 }
 ```
 
@@ -107,7 +109,8 @@ get_clean_script <- function(html) {
   #removes a ♪ followed by any number of characters followed by ♪
   str_replace_all("\\([^)]*\\)", "") |>
   #removes a ( followed by any number of characters followed by )
-  str_replace("^[A-Z]+ ?[1-9]?:", "")
+  str_replace("^[A-Z\\.’]+( [A-Z\\.]+)? ?[1-9]?:", "")
+  #removes capital letter words (with periods and apostrophe's inside for words like R.J. and BELINDA'S) that begin a line and are followed by a colon!
 }
   
   show_df <- show_df |>
