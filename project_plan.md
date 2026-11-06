@@ -130,11 +130,11 @@ Data Frame of Spacy Parsing
 
 Data frame of 67 linguistic features
 
-|  doc_id   |	f_01_past_tense |	f_02_perfect_aspect |	f_03_present_tense | f_04_place_adverbials | f_05_time_adverbials | f_... |
-|-----------|-----------------|---------------------|--------------------|-----------------------|----------------------|-------|
-| TV Show 1 |     double      |        double       |        double      |          double       |        double        | double|
-| Natural 1 |     double      |        double       |        double      |          double       |        double        | double|
-|    ...    |      ...        |        ...          |          ...       |          ...          |         ...          |  ...  |
+|  doc_id   |	f_01_past_tense |	f_02_perfect_aspect |	f_03_present_tense | f_04_place_adverbials | f_05_time_adverbials | f_...   |
+|-----------|-----------------|---------------------|--------------------|-----------------------|----------------------|---------|
+| TV Show 1 |     `double`    |        `double`     |        `double`    |          `double`     |        `double`      | `double`|
+| Natural 1 |     `double`    |        `double`     |        `double`    |          `double`     |        `double`      | `double`|
+|    ...    |      ...        |        ...          |          ...       |          ...          |         ...          |  ...    |
 
 
 #### Progress Report 3
