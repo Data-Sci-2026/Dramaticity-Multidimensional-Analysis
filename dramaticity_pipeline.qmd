@@ -10,6 +10,9 @@ format: gfm
 ```{r}
 library(tidyverse)
 library(rvest)
+library(corrplot)
+library(mda.biber)
+library(polars)
 ```
 
 ## Intro
@@ -23,7 +26,9 @@ This document is used to describe how the individual data frames were combined, 
 First, we load in the tv_show_transcripts pipeline as a csv (saved to avoid repeated webscraping).
 
 ```{r}
-tv_show_df <- read.csv("tv_show_transcripts.csv")
+#| output: false
+
+tv_show_df <- read.csv("private/tv_show_transcripts.csv")
 
 tv_show_df
 ```
@@ -140,15 +145,15 @@ trn_df
 ```
 
 ```{r}
-#| eval: false
+#| output: false
 
-files = list.files("SBCorpus/TRN", full.names = TRUE)
+files = list.files("private/SBCorpus/TRN", full.names = TRUE)
 #here we go into the file TRN and pull out all of the full names for the files
 files
 ```
 
 ```{r}
-#| eval: false
+#| output: false
 
 list_files <- files |>
   map(get_clean_wrds) 
@@ -162,7 +167,7 @@ all_files
 Finally, we combine the two data frames.
 
 ```{r}
-#| eval: false
+#| output: false
 
 all_transcripts <- rbind(all_files, tv_show_df)
 
@@ -175,7 +180,83 @@ view(all_transcripts)
 
 ## Tagging all_transcripts
 
+Tagging the transcripts required a python package. This process was completed in an ipynb file which will be embedded for reference below. It took substantial time to get the embedding to work and to get the proper data frame types to move between r and python. Specifically, the python package requires polar data frame types. 
+
+{{< embed private/biber_analysis_condensed.ipynb echo=true >}}
+
 ## Getting 67 Features
+
+Now, we can move that file back into R. As can b seen at the end of the notebook, we write out a new csv file that contains the tagged words. These can now be run through the process to get the 67 linguistic features. 
+
+```{r}
+#| output: false
+
+#reads in the csv file created in the notebook
+df_biber_dramaticity <- read.csv("private/df_biber_dramaticity")
+```
+
+
+Once read in, the process described [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html) is used to run our first attempt at the mda. 
+
+It is worth noting that at this point, this is more of a test analysis in order to get a better idea of how the process works and be able to work backwards to understand how to improve the process.
+
+```{r}
+#| output: false
+
+#ok so first we are assigning our data set to the variable d
+d <- df_biber_dramaticity %>%
+  #then, we are modifying a column called doc_id to extract strings that are either transcript or trn for their respective data sources
+  mutate(doc_id = if_else(str_detect(doc_id, "transcript"), str_extract(doc_id, "transcript"), str_extract(doc_id, "trn"))) %>%
+  #then we are modifying our new column so the strings are factors
+  mutate(doc_id = as.factor(doc_id)) %>%
+  #this is identifying only the columns that aren't 0?
+  select(where(~ any(. != 0)))
+```
+
+This changes the labels of the id column so that our groups are formed, turns them into factors, and removes any columns with 0 instances. 
+
+```{r}
+screeplot_mda(d)
+```
+A screeplot is used to determine the dimensions we want to keep in our analysis. The 'elbow' is determined by AF. Anything at or below the elbow is considered 'scree' and we do not want to include that in our analysis. In this case, we should include two factors because their are two points above the AF. 
+
+```{r}
+cor_m <- cor(d[,-1], method = "pearson")
+
+corrplot(cor_m, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45, diag = F, tl.cex = 0.5)
+```
+This plot is a representation of correlation between features. Blue indicates positive correlation along and red indicates negative correlation. We can see that a number of these features are correlated, so an MDA analysis makes sense. 
+
+```{r}
+#now for the actual mda, factors is set equal to 2 because of the screeplot results
+m <- mda_loadings(d, n_factors = 2)
+```
+
+```{r}
+attributes(m)$group_means
+```
+
+```{r}
+#values arranged in descending order for factor 1
+attributes(m)$loadings %>% arrange(-Factor1)
+```
+
+```{r}
+stickplot_mda(m, n_factor = 1)
+```
+Not a very exciting graph with only a binary comparison!
+
+```{r}
+heatmap_mda(m, n_factor = 1)
+```
+
+This is a bit more telling. Interesting that emphatics appear to predict natural discourse here when compared to TV show dialogue. I hypothesized it might be the opposite. 
+
+```{r}
+boxplot_mda(m, n_factor = 1)
+```
+
+Last graph. Similar to the last one, this is just a measure of how different these document types are. Worth noting that the natural discourses varied a **lot** more and had several outliers. 
 
 ## Determining Additional Features
 
