@@ -176,7 +176,15 @@ view(all_transcripts)
 ```
 
 
-## Summary all_transcripts df
+## Summary all_transcripts
+
+Below is some summary information about what is included in all_transcripts:
+
+- there are two columns and 120 rows (as expected)
+
+- comprised of 1,038,180 words!
+
+- there are 516,664 words in the transcripts from SBC and 521,515 words in the scripts from scraps from the loft- pretty even word distribution!
 
 ## Tagging all_transcripts
 
