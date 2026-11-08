@@ -43,6 +43,13 @@ In particular, I need to decide if I am only comparing natural discourse to TV s
 
 I have decided to use the MIT license as it fits my goals, allowing the project to be easily replicated and expanded on.
 
+### Sharing Scheme
+
+Since the data for this project comes from two sources, it is important to consider each individually.
+Files from the Santa Barbara Corpus are able to be shared based in their original form freely. 
+For that reason, they are included in the `data` folder. 
+However, since Scraps from the Loft was a webscraping process, I will simply be providing a link to the website for the found portion of that data.
+
 ### Dramaticity Pipeline
 
 I have created the final pipeline document for this project, [Dramaticity Pipeline](dramaticity_pipeline.md). 
