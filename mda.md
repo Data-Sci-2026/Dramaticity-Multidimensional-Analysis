@@ -1,14 +1,46 @@
 # Mutli-Dimensional Analysis
 
 This document serves as an explanation of the fundamentals of Multi-Dimensional Analysis. 
-Additionally, this is a place to discuss particularly important decisions that were made throughout the process and that will be necessary for any similar project. 
-
-## Fundamentals
-
-A mutli-dimensional analysis (MDA from here on) is...
-
-## Key considerations
-
-There are some important fundamental steps necessary to enact an MDA. 
+Additionally, this is a place to discuss particularly important decisions related to the mda made throughout the process that will be necessary for any similar project. 
 
 ### Defining a Dimension
+
+Dimensions are descriptions of text that are "continuums of variation" (p. 9)
+For example, the present project is looking at the continuum of undramatic to dramatic. 
+Any text could be placed on this continuum. 
+A dimension can also be a linguistic feature, such as "verbal to nominal" (p. 12).
+But for a multidimensional analysis, these smaller linguistic features are grouped together in order to define larger dimensions. 
+
+The underlying idea here is that when linguistic features co-occur, that co-occurence is caused by some underlying dimension. 
+If the number of pronouns in a document seems to co-occur with simple clauses, we could say that they are part of an underlying dimension of formal-informal for instance.
+
+### Creating a Features List
+
+For the present study, we are comparing two texts which should be relatively similar in terms of linguistic features.
+TV show transcripts are meant to simulate real conversations.
+They are both spoken language (as opposed to written) and they are both less likely to be particularly formal. 
+However, there are significant differences between these two types of dialogue. 
+For the present mda, the difference focused on is dramaticity. 
+In order to accomplish this, we need to decide on a list of linguistic features that might influence how 'dramatic' a text sounds. 
+Fortunately for us, Biber has already come up with a very useful list of 67 features that frequently define dimensions across English texts.
+This list is an excellent starting point. 
+It is also worth noting that "the range of communicative situations and purposes available in a language must be determined, and texts representing that range of variation must be collected... linguistic features that are potentially important indicators of variation within the domain must be identified in advance..." (65).
+In assembling a corpus that hopefully covers a wide range of the different setting in which people talk as well as how speech is replicated on TV shows, we have satisfied the first requirement.
+In order to satisfy the second, we should add any features considered particularly important in the literature of describing 'dramatic' language. 
+
+### Corpus Size
+
+A factor analysis requires "five times as many texts as linguistic features to be analyzed" (65)
+We have a corpus of 120 texts, meaning we should only be including 24 linguistic features. 
+Interestingly, there is no particular mention that these texts need to be the same size or that types of texts need to be equally sized.
+Ideally, we will be able to limit the important linguistic features to 24. 
+
+### The Follow Up
+
+Once the features that co-occur have been determined, that is simply the beginning. 
+In order to justify arguing these features as evidence of "dramaticity" differences, we need to take a closer look.
+As Biber says, "any interpretations need to be verified and refined by analysis of the co-occuring features in particular texts" (19).
+
+
+
+
