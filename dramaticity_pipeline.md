@@ -229,13 +229,6 @@ import polars as pl
 ```
 
 ``` python
-import sys
-print(sys.executable)
-```
-
-    C:\ProgramData\anaconda3\python.exe
-
-``` python
 nlp = spacy.load("en_core_web_sm")
 ```
 
