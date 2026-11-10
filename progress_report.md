@@ -71,10 +71,6 @@ Overall, this was a good first attempt at the process.
 
 I created a new area for discussing nuances and questions related to [MDA](mda.md)
 
-### Linguistic Features
-
-Within the pipeline, I *began* discussing what features would be worth including from Biber's 67 and some that are not there that would be nice to include (without considering whether it will be manageable to do so). 
-
 ### Next Steps
 
 While a lot has been accomplished, there is a great deal to do to improve the quality of our analysis and improve our methodology. 
