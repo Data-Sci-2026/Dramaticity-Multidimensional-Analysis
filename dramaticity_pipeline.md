@@ -214,9 +214,6 @@ all_transcripts:
 
 Tagging the transcripts required a python package. This process was
 completed in an ipynb file which will be embedded for reference below.
-It took substantial time to get the embedding to work and to get the
-proper data frame types to move between r and python. Specifically, the
-python package requires polar data frame types.
 
 <div class="quarto-embed-nb-cell"
 data-notebook="C:\Users\justz\Dramaticity-Multidimensional-Analysis\private\biber_analysis_condensed.ipynb"

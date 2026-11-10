@@ -63,6 +63,8 @@ I have created the final pipeline document for this project, [Dramaticity Pipeli
 This document now contains a summary of how the data frames we combined and a description of their contents.
 Additionally, I have completed the first mda on the data. 
 Using jupyter notebook (embedded in the pipeline) I tagged the data and then within R calculated the 67 linguistic features. 
+It took substantial time to get the embedding to work and to get the proper data frame types to move between r and python. 
+Specifically, the python package requires polar data frame types.
 After, it was necessary to run a screeplot and a correlation plot to figure out the number of dimensions that should be performed and whether features co-occur.
 Finally, the mda was run, summarizing the differences between these two corpora and multiple graphs were created that visualize these differences. 
 Overall, this was a good first attempt at the process.
