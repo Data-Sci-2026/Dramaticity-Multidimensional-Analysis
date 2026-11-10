@@ -174,7 +174,7 @@ trn_df
 ```
 
 ``` r
-files = list.files("SBCorpus/TRN", full.names = TRUE)
+files = list.files("private/SBCorpus/TRN", full.names = TRUE)
 #here we go into the file TRN and pull out all of the full names for the files
 files
 ```
@@ -197,7 +197,18 @@ all_transcripts
 view(all_transcripts)
 ```
 
-## Summary all_transcripts df
+## Summary all_transcripts
+
+Below is some summary information about what is included in
+all_transcripts:
+
+- there are two columns and 120 rows (as expected)
+
+- comprised of 1,038,180 words!
+
+- there are 516,664 words in the transcripts from SBC and 521,515 words
+  in the scripts from scraps from the loft- pretty even word
+  distribution!
 
 ## Tagging all_transcripts
 
@@ -486,10 +497,6 @@ Last graph. Similar to the last one, this is just a measure of how
 different these document types are. Worth noting that the natural
 discourses varied a **lot** more and had several outliers.
 
-## Determining Additional Features
+## Running MDA with Comedy-Drama Distinction
 
-## Adding Additional Features
-
-## Running Multidimensional Analysis
-
-## 
+## Considering Relevant Features
