@@ -175,7 +175,7 @@ get_clean_wrds <- function(file) {
 trn <- str_extract(file, "\\d+")
   
 #read in a file as a df
-trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
+trn_df <-  read_tsv(file, col_names = FALSE)
 
 #ok we're trying something much simpler than we had before. At this point the pattern can be described as "select a column number equal to the number of columns because we always want the last column. So if we just get ourselves that variable and then just select that, we should be fine
 columns <- ncol(trn_df)
