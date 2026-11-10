@@ -83,13 +83,7 @@ Instead of keeping all TV shows together, we will create two categories: drama a
 These categories were already selected for each TV show in Scraps from the Loft using wikipedia entries.
 In our final analysis, then, we will have four different points of comparison which could be put into the following order from least dramatic to most: natural-comedy-drama.
 
-Additionally, it is important that we decide which linguistic features should actually be included and whether any features not included should be added.
-It is recommended to lean towards inclusion, but there are some features that clearly do not represent our desired 'dramaticity' comparison. 
-It is also possible that some useful features have not been included. 
-If possible, I will attempt to address these and add a measure of them to our table. 
-Once this is done, our MDA will be more reflective of our desired comparison. 
-
-Finally, some further analysis would be useful in determining why certain features were significant and what we can learn.
+Additionally, some further analysis would be useful in determining why certain features were significant and what we can learn.
 For one thing, a greater number of emphatics appear to be more indicative of less dramatic discourse (natural discourse).
 It is possible this is because we see more repetition in natural discourse. 
 It would be worth mapping the kinds of emphatics that are used in their respective genres to get a more nuanced understanding of the difference.

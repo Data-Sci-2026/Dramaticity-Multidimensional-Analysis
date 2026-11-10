@@ -266,15 +266,9 @@ boxplot_mda(m, n_factor = 1)
 
 Last graph. Similar to the last one, this is just a measure of how different these document types are. Worth noting that the natural discourses varied a **lot** more and had several outliers. 
 
-## Determining Additional Features
+## Running MDA with Comedy-Drama Distinction
 
-
-
-## Adding Additional Features
-
-## Running Multidimensional Analysis
-
-##
+## Considering Relevant Features
 
 
 

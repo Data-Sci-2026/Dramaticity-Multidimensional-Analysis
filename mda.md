@@ -22,18 +22,7 @@ They are both spoken language (as opposed to written) and they are both less lik
 However, there are significant differences between these two types of dialogue. 
 For the present mda, the difference focused on is dramaticity. 
 In order to accomplish this, we need to decide on a list of linguistic features that might influence how 'dramatic' a text sounds. 
-Fortunately for us, Biber has already come up with a very useful list of 67 features that frequently define dimensions across English texts.
-This list is an excellent starting point. 
-It is also worth noting that "the range of communicative situations and purposes available in a language must be determined, and texts representing that range of variation must be collected... linguistic features that are potentially important indicators of variation within the domain must be identified in advance..." (65).
-In assembling a corpus that hopefully covers a wide range of the different setting in which people talk as well as how speech is replicated on TV shows, we have satisfied the first requirement.
-In order to satisfy the second, we should add any features considered particularly important in the literature of describing 'dramatic' language. 
-
-### Corpus Size
-
-A factor analysis requires "five times as many texts as linguistic features to be analyzed" (65)
-We have a corpus of 120 texts, meaning we should only be including 24 linguistic features. 
-Interestingly, there is no particular mention that these texts need to be the same size or that types of texts need to be equally sized.
-Ideally, we will be able to limit the important linguistic features to 24. 
+Fortunately for us, Biber has already come up with a very useful list of 67 features that defines multiple dimensions across English texts.
 
 ### The Follow Up
 
