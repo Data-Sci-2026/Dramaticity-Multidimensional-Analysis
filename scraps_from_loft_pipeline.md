@@ -43,8 +43,8 @@ look at the test page I used, the Adults Episode 4 transcript.
 ``` r
 html <- "https://scrapsfromtheloft.com/tv-series/adults-s01e04-house-rules-transcript/"
 
+#reads in the website
 show <- read_html(html)
-  #reads in the website
 ```
 
 ## Finding the right Elements and Transformation
@@ -54,13 +54,13 @@ to target fairly quickly as shown in the code below.
 
 ``` r
 show_script <- show |>
-  html_elements(".single-content p") |>
   #find all elements on the web page that are actually dialogue
-  html_text2()
+  html_elements(".single-content p") |>
   #turn those elements into only text
+  html_text2()
 
+#turn our character vector into a df
 show_df <- data.frame(show_script) 
-  #turn our character vector into a df
 ```
 
 I also transformed this into a data frame. While this probably wasn’t
@@ -76,19 +76,21 @@ making it easy to leave only the text we want.
 
 ``` r
 show_df <- show_df |>
-  slice(-(1:4))
   #removes the first four rows which are not actually dialogue from the show
+  slice(-(1:4))
 ```
 
 ``` r
 clean <- function(string) {
   string |>
-  str_replace_all("\\[.*?\\]", "") |>
   #remove a [ followed by any number of any characters and then a ]
-  str_replace_all("♪[^♪]*♪", "") |>
+  str_replace_all("\\[.*?\\]", "") |>
   #removes a ♪ followed by any number of characters followed by ♪
-  str_replace_all("\\([^)]*\\)", "")
+  str_replace_all("♪[^♪]*♪", "") |>
   #removes a ( followed by any number of characters followed by )
+  str_replace_all("\\([^)]*\\)", "") |>
+  #removes capital letter words (with periods and apostrophe's inside for words like R.J. and      BELINDA'S) that begin a line and are followed by a colon!
+  str_replace("^[A-Z\\.’]+( [A-Z\\.]+)? ?[1-9]?:", "")
 }
 ```
 
@@ -97,68 +99,75 @@ clean <- function(string) {
 ``` r
 get_clean_script <- function(html) {
   
-  show <- read_html(html)
   #reads in the website
+  show <- read_html(html)
   
+            #removes the first part of the html link which is identical across transcripts
   series <- str_remove(html, "https://scrapsfromtheloft.com/tv-series/") |>
-            #removes the first part of the html link which is identical accross transcripts
-    str_replace("-s\\d.+-", "-") |>
     #replaces -s followed by a digit followed by any number of characters and then a - with a single -
-    str_remove("/") |>
+    str_replace("-s\\d.+-", "-") |>
     #removes remaining /
-    str_replace_all("-", "_")
+    str_remove("/") |>
     #replaces all -'s with _'s
+    str_replace_all("-", "_")
   
   show_script <- show |>
-  html_elements(".single-content p") |>
   #find all elements on the web page that are actually dialogue
+  html_elements(".single-content p") |>
+  #turn those elements into only text  
   html_text2()
-  #turn those elements into only text
   
-  show_df <- data.frame(show_script) 
   #turn our character vector into a df
+  show_df <- data.frame(show_script) 
   
   show_df <- show_df |>
-  slice(-(1:4))
   #removes the first four rows which are not actually dialogue from the show
+  slice(-(1:4))
   
   #defines a function for cleaning each string in our df
   clean <- function(string) {
   string |>
-  str_replace_all("\\[.*?\\]", "") |>
   #remove a [ followed by any number of any characters and then a ]
-  str_replace_all("♪[^♪]*♪", "") |>
+  str_replace_all("\\[.*?\\]", "") |>
   #removes a ♪ followed by any number of characters followed by ♪
-  str_replace_all("\\([^)]*\\)", "") |>
+  str_replace_all("♪[^♪]*♪", "") |>
   #removes a ( followed by any number of characters followed by )
-  str_replace("^[A-Z]+ ?[1-9]?:", "")
+  str_replace_all("\\([^)]*\\)", "") |>
+  #removes all remaining music notes
+  str_remove_all("♪") |>
+  #removes all *** that might've snuck in
+  str_remove_all("\\*") |>
+  #removes capital letter words (with periods and apostrophe's inside for words like R.J. and BELINDA'S) that begin a line and are followed by a colon!
+  str_replace("^[A-Z\\.’]+( [A-Z\\.]+)? ?[1-9]?:", "")
 }
   
   show_df <- show_df |>
     mutate(show_script = 
+             #cleans up all the lines with the function above
              clean(show_script)) |>
-    #cleans up all the lines with the function above
     mutate(show_script = 
+             #removes extra white space
              trimws(show_script)) |>
-    #removes extra white space
-    filter(!show_script == '') 
+    #first attempt to remove the extra line!
+    mutate(show_script = replace_when(show_script, str_detect(show_script, "S\\d\\dE\\d\\d") ~ "")) |>
     #removes lines with no text
+    filter(!show_script == '') 
   
   show_df |>
     mutate(script = "x",
+           #add a column fill in for unifying these features
          .before = show_script)
-  #add a column fill in for unifying these features
 
   show_df <- show_df |>
-  summarize(show_script = str_flatten(show_script, " "))
   #returns a single cell data frame of all of the dialogue combined with spaces
+  summarize(show_script = str_flatten(show_script, " "))
   
   show_df <- show_df |>
+  #adds a new column that gives the id based on the series
   mutate(id = series,
-         #adds a new column that gives the id based on the series
          .before = "show_script") |>
+    #renames to clean_words so we can rbind this thing with the santa barbara df eventually making one big df!!!
   rename("clean_words" = show_script)
-  #renames to clean_words so we can rbind this thing with the santa barbara df eventually making one big df!!!
   
   show_df
 }
@@ -184,13 +193,14 @@ randomly selected 33 of the remaining drama TV shows with the following
 code.
 
 ``` r
-set.seed(20)
 #just chose a random seed so that we get the same random result every time we run this
+set.seed(20)
+
 dramas <- tv_show_df |>
-  filter(str_detect(genre, "drama") & !str_detect(genre, "comedy")) |>
   #filters only shows that included the genre drama and not the genre comedy
-  slice_sample(n = 32)
+  filter(str_detect(genre, "drama") & !str_detect(genre, "comedy")) |>
   #randomly selects 32 of these
+  slice_sample(n = 32)
 
 dramas
 ```

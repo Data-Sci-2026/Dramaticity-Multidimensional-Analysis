@@ -34,7 +34,8 @@ document, we can use the test .trn file I used, the first .trn.
 ``` r
 file <- "private/SBCorpus/TRN/SBC001.trn"
 
-trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
+#reads in a single trn file and lets R decide the column names
+trn_df <-  read_tsv(file, col_names = FALSE)
 ```
 
     Rows: 1312 Columns: 3
@@ -46,24 +47,22 @@ trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
     ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
 
 ``` r
-#reads in a single trn file and lets R decide the column names
-
 trn_df
 ```
 
     # A tibble: 1,312 × 3
-       X1          X2         X3                                                    
-       <chr>       <chr>      <chr>                                                 
-     1 0.00 9.21   "LENORE: " "... So you don't need to go ... borrow equipment fro…
-     2 9.21 9.52   "        " "to --"                                               
-     3 9.52 14.10  "        " "... to do the feet?"                                 
-     4 14.10 15.78 "        " "... [Do the hooves]?"                                
-     5 15.01 16.78 "LYNNE:  " "    [(H)=] <YWN Well,"                               
-     6 16.78 18.32 "        " "   we're gonna have to find somewhere,"              
-     7 18.33 18.85 "        " "to get,"                                             
-     8 18.85 20.69 "        " "(Hx) ... something (Hx) YWN>."                       
-     9 20.69 21.19 "DORIS:  " ".. So,"                                              
-    10 21.19 21.74 "        " "[~Mae-] --"                                          
+       X1          X2      X3                                                       
+       <chr>       <chr>   <chr>                                                    
+     1 0.00 9.21   LENORE: ... So you don't need to go ... borrow equipment from an…
+     2 9.21 9.52   <NA>    to --                                                    
+     3 9.52 14.10  <NA>    ... to do the feet?                                      
+     4 14.10 15.78 <NA>    ... [Do the hooves]?                                     
+     5 15.01 16.78 LYNNE:  [(H)=] <YWN Well,                                        
+     6 16.78 18.32 <NA>    we're gonna have to find somewhere,                      
+     7 18.33 18.85 <NA>    to get,                                                  
+     8 18.85 20.69 <NA>    (Hx) ... something (Hx) YWN>.                            
+     9 20.69 21.19 DORIS:  .. So,                                                   
+    10 21.19 21.74 <NA>    [~Mae-] --                                               
     # ℹ 1,302 more rows
 
 Originally, I named the columns. However, I later realized that some of
@@ -93,21 +92,22 @@ described in detail below and in the final code.
 ``` r
 repetitions <- function(string) {
   group <- string |>
-  str_extract_all("([1-9])[^X]*\\1")
   #find the pattern we're looking for
-  times <- group |>
-  str_extract("[1-9]")
-  #figure out the marking of how many times it should occur
-  times <- as.numeric(times)
-  #turn that marking into an actual number
-  multiple <- strrep(group, times)
-  #multiply that string by the multiple
-  group <- string |>
   str_extract_all("([1-9])[^X]*\\1")
-  #redefine the pattern we're looking for because group had to be renamed before (this is probably redundant but I'm confused rn so I don't wanna figure out the better way)
+  times <- group |>
+  #figure out the marking of how many times it should occur
+  str_extract("[1-9]")
+  #turn that marking into an actual number
+  times <- as.numeric(times)
+  #multiply that string by the multiple
+  multiple <- strrep(group, times)
+  group <- string |>
+    #redefine the pattern we're looking for because group had to be renamed before (this is probably redundant but I'm confused rn so I don't wanna figure out the better way)
+  str_extract_all("([1-9])[^X]*\\1")
+
   string |>
-    str_replace_all("([1-9])[^X]*\\1", multiple)
   #replace the initial string with what we want
+    str_replace_all("([1-9])[^X]*\\1", multiple)
 }
 enact_repeats <- function(string) {
   if_else(str_detect(string, "([1-9])[^X]*\\1"), repetitions(string), string)
@@ -115,37 +115,38 @@ enact_repeats <- function(string) {
 #enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
 clean <- function(string) {
   string |>
-  str_replace_all("\x92", "'") |>
   #replaces a specific unicode symbol with apostrophe's because ONE of the files uses this
-  str_replace_all("[1-9]X+[1-9]", "") |>
+  str_replace_all("\x92", "'") |>
   #before anything, get rid of the #X# combinations cause that causes problems
+  str_replace_all("[1-9]X+[1-9]", "") |>
   enact_repeats()|>
-  str_replace_all("\\([^)]*\\)", "") |>
   #replace a ( followed by any number of any characters but a ) and then a )
-  str_replace_all("<[^ ]*", "") |>
+  str_replace_all("\\([^)]*\\)", "") |>
   #replace any < followed by any number of characters but space
-  str_replace_all("[^ ]*>", "") |>
+  str_replace_all("<[^ ]*", "") |>
   #replace any number of characters but a space immediately before a >
-  str_replace_all("_. |_", " ") |>
+  str_replace_all("[^ ]*>", "") |>
   #replace an underscore followed by a single character or an underscore by itself
-  str_replace_all("~[^ ]*", "") |>
+  str_replace_all("_. |_", " ") |>
   #replace a tilde followed by any character but a space with an empty string
-  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
+  str_replace_all("~[^ ]*", "") |>
   #remove each of the symbols inside, all of them
-  str_remove_all("\\.\\.+") |>
+  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
   #remove two or more literal dots, all of them
+  str_remove_all("\\.\\.+") |>
+  #removes exclamation points before a word
   str_replace_all("!(\\w)", "\\1") |>
-  str_remove_all("--+") |>
   #remove two or more dashes, all of them
-  str_replace_all("^ | $", "") |>
+  str_remove_all("--+") |>
   #remove all spaces at the beginning or end of the line
-  str_replace_all("[1-9]", " ") |>
+  str_replace_all("^ | $", "") |>
   #replace spaces at the beginning and end of a line with no spaces
-  str_replace_all("[ ]+", " ") |>
+  str_replace_all("[1-9]", " ") |>
   #replace any space larger than one spaces with single spaces
+  str_replace_all("[ ]+", " ") |>
+  #replaces any space before a period or comma with no space
   str_replace_all(" \\.", "\\.") |>
   str_replace_all(" \\,", "\\,") 
-  #replaces any space before a period or comma with no space
 }
 ```
 
@@ -184,18 +185,18 @@ clean_trn_wrds
 ```
 
     # A tibble: 1,312 × 2
-       words                                                            clean_words 
-       <chr>                                                            <chr>       
-     1 "... So you don't need to go ... borrow equipment from anybody," "So you don…
-     2 "to --"                                                          "to"        
-     3 "... to do the feet?"                                            "to do the …
-     4 "... [Do the hooves]?"                                           "Do the hoo…
-     5 "    [(H)=] <YWN Well,"                                          " Well,"    
-     6 "   we're gonna have to find somewhere,"                         " we're gon…
-     7 "to get,"                                                        "to get,"   
-     8 "(Hx) ... something (Hx) YWN>."                                  " something…
-     9 ".. So,"                                                         "So,"       
-    10 "[~Mae-] --"                                                     ""          
+       words                                                          clean_words   
+       <chr>                                                          <chr>         
+     1 ... So you don't need to go ... borrow equipment from anybody, "So you don't…
+     2 to --                                                          "to"          
+     3 ... to do the feet?                                            "to do the fe…
+     4 ... [Do the hooves]?                                           "Do the hoove…
+     5 [(H)=] <YWN Well,                                              " Well,"      
+     6 we're gonna have to find somewhere,                            "we're gonna …
+     7 to get,                                                        "to get,"     
+     8 (Hx) ... something (Hx) YWN>.                                  " something." 
+     9 .. So,                                                         "So,"         
+    10 [~Mae-] --                                                     ""            
     # ℹ 1,302 more rows
 
 Above, we see the clean version in the second column!
@@ -206,15 +207,15 @@ get rid of white space, empty lines, and make sure only the
 
 ``` r
 trn_text <- clean_trn_wrds |>
-  select(!words) |>
   #get rid of messy version of each line
-  mutate(clean_words = trimws(clean_words)) |>
+  select(!words) |>
   #trim white space 
-  filter(!clean_words == '') |>
+  mutate(clean_words = trimws(clean_words)) |>
   #filter out empty lines
+  filter(!clean_words == '') |>
   mutate(trn = "x",
-         .before = clean_words)
   #add a column fill in for unifying these features
+         .before = clean_words)
 
 trn_text
 ```
@@ -241,8 +242,8 @@ was added to prepare for the following code.
 
 ``` r
 trn_text <- trn_text |>
-  summarize(clean_words = str_flatten(clean_words, " "))
   #returns a single cell data frame of all of the dialogue combined with spaces
+  summarize(clean_words = str_flatten(clean_words, " "))
 
 trn_text
 ```
@@ -260,13 +261,13 @@ In order to make an id column that kept track of which .trn file was
 being observed, the code below was implemented.
 
 ``` r
-trn <- str_extract(file, "\\d+")
 #takes the thee numbers attached to each .trn
+trn <- str_extract(file, "\\d+")
 
 trn_df <- trn_text |>
   mutate(id = str_flatten(c("trn", trn), "_"),
-         .before = "clean_words")
 #creates a full name for each doc as trn_###
+         .before = "clean_words")
 
 trn_df
 ```
@@ -282,15 +283,14 @@ trn_df
 #creating a function to get the cleaned up words into a data frame all together
 get_clean_wrds <- function(file) {
 
-#reading in a file as a data frame
-
+#creates a variable that we can use to make file names later
 trn <- str_extract(file, "\\d+")
   
-trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
 #read in a file as a df
+trn_df <-  read_tsv(file, col_names = FALSE)
 
-columns <- ncol(trn_df)
 #ok we're trying something much simpler than we had before. At this point the pattern can be described as "select a column number equal to the number of columns because we always want the last column. So if we just get ourselves that variable and then just select that, we should be fine
+columns <- ncol(trn_df)
 
 trn_wrds <- trn_df |>
   select(words = columns)
@@ -300,59 +300,60 @@ trn_wrds <- trn_df |>
 #repetitions takes a given string and multiplies it by numbers that surround the string
 repetitions <- function(string) {
   group <- string |>
-  str_extract_all("([1-9])[^X]*\\1")
   #find the pattern we're looking for
-  times <- group |>
-  str_extract("[1-9]")
-  #figure out the marking of how many times it should occur
-  times <- as.numeric(times)
-  #turn that marking into an actual number
-  multiple <- strrep(group, times)
-  #multiply that string by the multiple
-  group <- string |>
   str_extract_all("([1-9])[^X]*\\1")
+  times <- group |>
+  #figure out the marking of how many times it should occur
+  str_extract("[1-9]")
+  #turn that marking into an actual number
+  times <- as.numeric(times)
+  #multiply that string by the multiple
+  multiple <- strrep(group, times)
+  group <- string |>
   #redefine the pattern we're looking for because group had to be renamed before (this is probably redundant but I'm confused rn so I don't wanna figure out the better way)
+  str_extract_all("([1-9])[^X]*\\1")
   string |>
-    str_replace_all("([1-9])[^X]*\\1", multiple)
   #replace the initial string with what we want
+    str_replace_all("([1-9])[^X]*\\1", multiple)
 }
+#enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
 enact_repeats <- function(string) {
   if_else(str_detect(string, "([1-9])[^X]*\\1"), repetitions(string), string)
 }
-#enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
 clean <- function(string) {
   string |>
-  str_replace_all("\x92", "'") |>
   #replaces a very specific unicode symbol with apostrophe's because ONE of the files uses this
-  str_replace_all("[1-9]X+[1-9]", "") |>
+  str_replace_all("\x92", "'") |>
   #before anything, get rid of the #X# combinations cause that causes problems
+  str_replace_all("[1-9]X+[1-9]", "") |>
   enact_repeats()|>
-  str_replace_all("\\([^)]*\\)", "") |>
   #replace a ( followed by any number of any characters but a ) and then a )
-  str_replace_all("<[^ ]*", "") |>
+  str_replace_all("\\([^)]*\\)", "") |>
   #replace any < followed by any number of characters but space
-  str_replace_all("[^ ]*>", "") |>
+  str_replace_all("<[^ ]*", "") |>
   #replace any number of characters but a space immediately before a >
-  str_replace_all("_. |_", " ") |>
+  str_replace_all("[^ ]*>", "") |>
   #replace an underscore followed by a single character or an underscore by itself
-  str_replace_all("~[^ ]*", "") |>
+  str_replace_all("_. |_", " ") |>
   #replace a tilde followed by any character but a space with an empty string
-  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
+  str_replace_all("~[^ ]*", "") |>
   #remove each of the symbols inside, all of them
-  str_remove_all("\\.\\.+") |>
+  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
   #remove two or more literal dots, all of them
+  str_remove_all("\\.\\.+") |>
+  #removes all exclamation points that precede a word
   str_replace_all("!(\\w)", "\\1") |>
-  str_remove_all("--+") |>
   #remove two or more dashes, all of them
-  str_replace_all("^ | $", "") |>
+  str_remove_all("--+") |>
   #remove all spaces at the beginning or end of the line
-  str_replace_all("[1-9]", " ") |>
+  str_replace_all("^ | $", "") |>
   #removes numbers
-  str_replace_all("[ ]+", " ") |>
+  str_replace_all("[1-9]", " ") |>
   #replace any space larger than one spaces with single spaces
+  str_replace_all("[ ]+", " ") |>
+  #replaces any space before a period or comma with no space
   str_replace_all(" \\.", "\\.") |>
   str_replace_all(" \\,", "\\,") 
-  #replaces any space before a period or comma with no space
 }
 #clean cleans up a data frame column made up of transcription markings to make it as close as possible to only dialogue. 
 
@@ -364,19 +365,19 @@ clean_trn_wrds <- trn_wrds |>
 #Getting the rows of dialogue into a single cell of dialogue
 
 trn_text <- clean_trn_wrds |>
-  select(!words) |>
   #get rid of messy version of each line
-  mutate(clean_words = trimws(clean_words)) |>
+  select(!words) |>
   #trim white space 
-  filter(!clean_words == '') |>
+  mutate(clean_words = trimws(clean_words)) |>
   #filter out empty lines
+  filter(!clean_words == '') |>
   mutate(trn = "x",
-         .before = clean_words)
   #add a column fill in for unifying these features
+         .before = clean_words)
 
 trn_text <- trn_text |>
-  summarize(clean_words = str_flatten(clean_words, " "))
   #returns a single cell data frame of all of the dialogue combined with spaces
+  summarize(clean_words = str_flatten(clean_words, " "))
 
 trn_df <- trn_text |>
   mutate(id = str_flatten(c("trn", trn), "_"),
@@ -390,8 +391,8 @@ The code below was used to create a list of every file name from the zip
 folder.
 
 ``` r
-files = list.files("SBCorpus/TRN", full.names = TRUE)
 #here we go into the file TRN and pull out all of the full names for the files
+files = list.files("SBCorpus/TRN", full.names = TRUE)
 files
 ```
 

@@ -23,7 +23,7 @@ There were two different file types provided for the Santa Barbara Corpus- .trn 
 file <- "private/SBCorpus/TRN/SBC001.trn"
 
 #reads in a single trn file and lets R decide the column names
-trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
+trn_df <-  read_tsv(file, col_names = FALSE)
 
 trn_df
 ```
