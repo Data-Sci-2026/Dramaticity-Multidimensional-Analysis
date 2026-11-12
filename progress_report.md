@@ -51,10 +51,9 @@ For that reason, all .trn files are included in the `data` folder.
 However, derived data from these files *cannot* be shared. 
 
 Since the Scraps from the Loft files were compiled in a webscraping process, I will simply be providing a link to the website for the found portion of that data.
-However, the derived data should be fine to share since this is for an educational purpose. 
-Therefore, I will be including the .csv file created from webscraping and processing.
+Derived or transformed data also cannot be shared.
 
-Finally, once the files have been transformed into the summary data frame of linguistic feature measurements, I will include these documents in `data` as well. 
+The final summary data tables will also not be shared as the constitute derivations of the original data.
 
 
 ### Dramaticity Pipeline

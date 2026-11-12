@@ -34,134 +34,18 @@ tv_show_df
 ```
 
 
-Then, we can recreate the SB data frame with the code described in the 
-
-```{r}
-#creating a function to get the cleaned up words into a data frame all together
-get_clean_wrds <- function(file) {
-
-#reading in a file as a data frame
-
-trn <- str_extract(file, "\\d+")
-  
-trn_df <-  read_delim(file, delim = "\t", col_names = FALSE)
-#read in a file as a df
-
-columns <- ncol(trn_df)
-#ok we're trying something much simpler than we had before. At this point the pattern can be described as "select a column number equal to the number of columns because we always want the last column. So if we just get ourselves that variable and then just select that, we should be fine
-
-trn_wrds <- trn_df |>
-  select(words = columns)
-
-# Function Definitions
-
-#repetitions takes a given string and multiplies it by numbers that surround the string
-repetitions <- function(string) {
-  group <- string |>
-  str_extract_all("([1-9])[^X]*\\1")
-  #find the pattern we're looking for
-  times <- group |>
-  str_extract("[1-9]")
-  #figure out the marking of how many times it should occur
-  times <- as.numeric(times)
-  #turn that marking into an actual number
-  multiple <- strrep(group, times)
-  #multiply that string by the multiple
-  group <- string |>
-  str_extract_all("([1-9])[^X]*\\1")
-  #redefine the pattern we're looking for because group had to be renamed before (this is probably redundant but I'm confused rn so I don't wanna figure out the better way)
-  string |>
-    str_replace_all("([1-9])[^X]*\\1", multiple)
-  #replace the initial string with what we want
-}
-enact_repeats <- function(string) {
-  if_else(str_detect(string, "([1-9])[^X]*\\1"), repetitions(string), string)
-}
-#enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
-clean <- function(string) {
-  string |>
-  str_replace_all("\x92", "'") |>
-  #replaces a very specific unicode symbol with apostrophe's because ONE of the files uses this
-  str_replace_all("[1-9]X+[1-9]", "") |>
-  #before anything, get rid of the #X# combinations cause that causes problems
-  enact_repeats()|>
-  str_replace_all("\\([^)]*\\)", "") |>
-  #replace a ( followed by any number of any characters but a ) and then a )
-  str_replace_all("<[^ ]*", "") |>
-  #replace any < followed by any number of characters but space
-  str_replace_all("[^ ]*>", "") |>
-  #replace any number of characters but a space immediately before a >
-  str_replace_all("_. |_", " ") |>
-  #replace an underscore followed by a single character or an underscore by itself
-  str_replace_all("~[^ ]*", "") |>
-  #replace a tilde followed by any character but a space with an empty string
-  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
-  #remove each of the symbols inside, all of them
-  str_remove_all("\\.\\.+") |>
-  #remove two or more literal dots, all of them
-  str_replace_all("!(\\w)", "\\1") |>
-  str_remove_all("--+") |>
-  #remove two or more dashes, all of them
-  str_replace_all("^ | $", "") |>
-  #remove all spaces at the beginning or end of the line
-  str_replace_all("[1-9]", " ") |>
-  #removes numbers
-  str_replace_all("[ ]+", " ") |>
-  #replace any space larger than one spaces with single spaces
-  str_replace_all(" \\.", "\\.") |>
-  str_replace_all(" \\,", "\\,") 
-  #replaces any space before a period or comma with no space
-}
-#clean cleans up a data frame column made up of transcription markings to make it as close as possible to only dialogue. 
-
-#Using clean() to clean up a data frame
-
-clean_trn_wrds <- trn_wrds |>
-  mutate(clean_words = clean(words))
-
-#Getting the rows of dialogue into a single cell of dialogue
-
-trn_text <- clean_trn_wrds |>
-  select(!words) |>
-  #get rid of messy version of each line
-  mutate(clean_words = trimws(clean_words)) |>
-  #trim white space 
-  filter(!clean_words == '') |>
-  #filter out empty lines
-  mutate(trn = "x",
-         .before = clean_words)
-  #add a column fill in for unifying these features
-
-trn_text <- trn_text |>
-  summarize(clean_words = str_flatten(clean_words, " "))
-  #returns a single cell data frame of all of the dialogue combined with spaces
-
-trn_df <- trn_text |>
-  mutate(id = str_flatten(c("trn", trn), "_"),
-         .before = "clean_words")
-
-trn_df
-}
-```
+Then, we can recreate the SB data frame with the code described in the [Santa Barabara Pipeline](santa_barbara_pipeline.md). Since this file can't be shared, we can just read it in below. 
 
 ```{r}
 #| output: false
 
-files = list.files("private/SBCorpus/TRN", full.names = TRUE)
-#here we go into the file TRN and pull out all of the full names for the files
-files
+sb_files <- read.csv("private/sb_files.csv")
+
+sb_files
 ```
 
-```{r}
-#| output: false
 
-list_files <- files |>
-  map(get_clean_wrds) 
 
-all_files <- do.call(rbind, list_files)
-
-all_files
-```
 
 
 Finally, we combine the two data frames.
@@ -169,10 +53,9 @@ Finally, we combine the two data frames.
 ```{r}
 #| output: false
 
-all_transcripts <- rbind(all_files, tv_show_df)
+all_transcripts <- rbind(sb_files, tv_show_df)
 
 all_transcripts
-view(all_transcripts)
 ```
 
 
@@ -180,17 +63,75 @@ view(all_transcripts)
 
 Below is some summary information about what is included in all_transcripts:
 
-- there are two columns and 120 rows (as expected)
+Number of rows and columns in our df
 
-- comprised of 1,038,180 words!
+```{r}
+nrow(all_transcripts)
+ncol(all_transcripts)
+```
 
-- there are 516,664 words in the transcripts from SBC and 521,515 words in the scripts from scraps from the loft- pretty even word distribution!
+Approximate number of words in our df:
+
+```{r}
+all_transcripts |>
+  mutate(nwords = (str_count(clean_words, "\\w+"))) |>
+  summarize(sum(nwords))
+```
+
+Approximate number of words by category:
+
+```{r}
+all_transcripts |>
+  mutate(id = if_else(str_detect(id, "transcript"), str_extract(id, "transcript"), str_extract(id, "trn"))) |>
+  mutate(nwords = (str_count(clean_words, "\\w+"))) |>
+  group_by(id) |>
+  summarize(sum(nwords))
+```
 
 ## Tagging all_transcripts
 
 Tagging the transcripts required a python package. This process was completed in an ipynb file which will be embedded for reference below.  
 
-{{< embed private/biber_analysis_condensed.ipynb echo=true >}}
+```{python}
+#spacy word parsing
+import spacy
+#pybiber
+import pybiber as pb
+#polars data frames
+import polars as pl
+```
+
+```{python}
+nlp = spacy.load("en_core_web_sm", disable=["ner"])
+```
+
+```{python}
+#loading our df
+all_transcripts = pl.read_csv("private/all_transcripts.csv")
+```
+
+```{python}
+#checking to see if we got the right df
+all_transcripts.head()
+```
+```{python}
+processor = pb.CorpusProcessor()
+df_dramaticity = processor.process_corpus(all_transcripts, nlp_model=nlp)
+```
+
+```{python}
+df_biber_dramaticity = pb.biber(df_dramaticity)
+```
+
+```{python}
+print(f"Matrix dimensions: {df_biber_dramaticity.shape}")
+df_biber_dramaticity.head()
+```
+
+```{python}
+df_biber_dramaticity.write_csv("private/df_biber_dramaticity")
+```
+
 
 ## Getting 67 Features
 
@@ -271,4 +212,7 @@ Last graph. Similar to the last one, this is just a measure of how different the
 ## Considering Relevant Features
 
 
+```{r}
+sessionInfo()
+```
 
