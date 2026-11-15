@@ -186,7 +186,12 @@ episode_links = readLines("data/html")
 episode_links
 ```
 
-In order to add the genres to our the name of each tv show file, I have included the data frame that contains each show by genre. The code below automatically adds this genre to the name of each transcript. 
+In order to add the genres to our the name of each tv show file, I have included the data frame that contains each show by genre. The code below automatically adds this genre to the name of each transcript. The data frame is included in the data folder for replication. 
+
+```{r}
+read_csv("private/genre_reference_df.csv", genres)
+```
+
 
 Once this list of links was compiled, I was able to iterate using the following mapping code:
 
