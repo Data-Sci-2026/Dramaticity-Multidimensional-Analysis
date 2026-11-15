@@ -281,7 +281,7 @@ The code below was used to create a list of every file name from the zip folder.
 #| eval: false
 
 #here we go into the file TRN and pull out all of the full names for the files
-files = list.files("SBCorpus/TRN", full.names = TRUE)
+files = list.files("data/SBCorpus/TRN", full.names = TRUE)
 files
 ```
 
@@ -297,6 +297,19 @@ all_trns <- do.call(rbind, list_files)
 
 all_trns
 ```
+
+This code creates a private folder if there is no such folder already.
+
+```{r}
+if(!dir.exists "private") dir.create("private")
+```
+
+With a private folder in place, we can write the csv file there so that we do not have to recreate the file in the future.
+
+```{r}
+write_csv(sb_files, "private/sb_files.csv")
+```
+
 
 
 ## Overview of the Data
