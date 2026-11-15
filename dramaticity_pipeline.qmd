@@ -19,7 +19,7 @@ library(polars)
 
 This pipeline describes the process of completing the analysis. See the [Santa Barbara Pipeline](santa_barbara_pipeline.md) and the [Scraps from the Loft Pipeline](scraps_from_loft_pipeline.md) for information on how the component data frames were assembled and where the data came from. 
 
-This document is used to describe how the individual data frames were combined, the shape of the resulting data frame, and the steps of the analysis. Final results and exploration of the analysis is documented in the [Dramaticity Analysis](dramaticity_analysis.md) document. 
+This document is used to describe how the individual data frames were combined, the shape of the resulting data frame, and the steps of the analysis. If more details are needed to explain the steps of the MDA, see the [MDA document](mda.md). Final results and exploration of the analysis is documented in the [Dramaticity Analysis](dramaticity_analysis.md) document. 
 
 ## Creating all_transcripts df
 

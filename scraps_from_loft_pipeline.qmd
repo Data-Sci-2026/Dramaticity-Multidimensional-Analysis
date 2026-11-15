@@ -237,3 +237,8 @@ write_csv(y, "private/tv_show_transcripts.csv")
 
 The resulting data frame is made up of the sixty observations of individual scraped webpages The TV show title is listed under the `id` column. In the `clean_wrds` column, the clean text of each page is included. Importantly, these are divided up roughly evenly my genre. I intend to add the genre information to the ID and to get a summary of how many tokens are in each observation as immediate next steps. 
 
+
+```{r}
+sessionInfo()
+```
+

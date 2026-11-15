@@ -316,3 +316,7 @@ write_csv(sb_files, "private/sb_files.csv")
 
 The resulting data frame is made up of the sixty observations of individual trn files. The file number is listed under the `id` column. In the `clean_wrds` column, the clean text of each file is included. In total, we have approximately  249,000 word tokens in the text section.  
 
+```{r}
+sessionInfo()
+```
+
