@@ -210,7 +210,7 @@ y <- y |>
     #adding an index column to the df
     mutate(index = row_number()) |>
     #combining show_df to the final table so that we have access to the genre
-    left_join(shows_final) |>
+    left_join(genre_df) |>
     #get rid of shows and the index as we don't need them anymore
     select(-c(shows, index)) |>
     #replace transcript with wahtever the genre is
