@@ -5,11 +5,22 @@ date: 11/6/2026
 format: gfm
 ---
 
+## EXISTING 
+
+This pipeline was used for progress report 2, it has been updated to reflect the final analysis
+
 ## Prereqs
+
+In addition to tidyverse packages, `corrplot`, `mda.biber`, and `polars` will all be needed. Polars is a special, relatively new type of data frame often used in python. This package is only necessary for transforming data frames so that python can use them properly. 
+
+Additionally, an installation of python (3.10+), pandas, NumPy, and spaCy is required to complete the process described below. Once these are installed, everything can be completed within R as described below. 
+
+[Information on python side](https://browndw.github.io/pybiber/)
+
+[Information on spaCy](https://spacy.io/usage)
 
 ```{r}
 library(tidyverse)
-library(rvest)
 library(corrplot)
 library(mda.biber)
 library(polars)
@@ -17,9 +28,9 @@ library(polars)
 
 ## Intro
 
-This pipeline describes the process of completing the analysis. See the [Santa Barbara Pipeline](santa_barbara_pipeline.md) and the [Scraps from the Loft Pipeline](scraps_from_loft_pipeline.md) for information on how the component data frames were assembled and where the data came from. 
+This pipeline describes the process of completing the MDA. See the [Santa Barbara Pipeline](santa_barbara_pipeline.md) and the [Scraps from the Loft Pipeline](scraps_from_loft_pipeline.md) for information on how the component data frames were assembled and where the data came from. 
 
-This document is used to describe how the individual data frames were combined, the shape of the resulting data frame, and the steps of the analysis. If more details are needed to explain the steps of the MDA, see the [MDA document](mda.md). Final results and exploration of the analysis is documented in the [Dramaticity Analysis](dramaticity_analysis.md) document. 
+This document is used to describe how the individual data frames were combined, the shape of the resulting data frame, and the steps of the analysis. If more details are needed to explain the steps of the MDA, see the [MDA document](mda.md). Final results and exploration of the analysis is documented in the [Dramaticity Analysis](final_report.md) document. 
 
 ## Creating all_transcripts df
 
@@ -34,7 +45,7 @@ tv_show_df
 ```
 
 
-Then, we can recreate the SB data frame with the code described in the [Santa Barabara Pipeline](santa_barbara_pipeline.md). Since this file can't be shared, we can just read it in below. 
+Then, we can load in the SB data frame. 
 
 ```{r}
 #| output: false
@@ -45,9 +56,6 @@ sb_files
 ```
 
 
-
-
-
 Finally, we combine the two data frames.
 
 ```{r}
@@ -55,7 +63,16 @@ Finally, we combine the two data frames.
 
 all_transcripts <- rbind(sb_files, tv_show_df)
 
-all_transcripts
+all_transcripts <- all_transcripts|>
+  #renaming the second column to text as that is what is expected for the pybiber pipeline below
+  rename(text = "clean_words",
+         doc_id = "id")
+```
+
+Now we save this file to our private folder!
+
+```{r}
+write_csv(all_transcripts, "private/all_transcripts.csv")
 ```
 
 
@@ -74,7 +91,7 @@ Approximate number of words in our df:
 
 ```{r}
 all_transcripts |>
-  mutate(nwords = (str_count(clean_words, "\\w+"))) |>
+  mutate(nwords = (str_count(text, "\\w+"))) |>
   summarize(sum(nwords))
 ```
 
@@ -82,15 +99,20 @@ Approximate number of words by category:
 
 ```{r}
 all_transcripts |>
-  mutate(id = if_else(str_detect(id, "transcript"), str_extract(id, "transcript"), str_extract(id, "trn"))) |>
-  mutate(nwords = (str_count(clean_words, "\\w+"))) |>
-  group_by(id) |>
+  mutate(id = case_when(str_detect(doc_id, "trn") ~ "natural", 
+                        str_detect(doc_id, "comedy") ~ "comedy", 
+                        str_detect(doc_id, "drama") ~ "drama")) |>
+  mutate(nwords = (str_count(text, "\\w+"))) |>
+  group_by(doc_id) |>
   summarize(sum(nwords))
 ```
 
-## Tagging all_transcripts
+## Tagging all_transcripts and Getting Factor Loadings
 
-Tagging the transcripts required a python package. This process was completed in an ipynb file which will be embedded for reference below.  
+Tagging the transcripts required a python package. This process was first completed in an ipynb file, but it can also be run in cells within R as is show below.  
+
+Here, spacy is being downloaded as this is the word parser we are using. Pybiber is a python package that runs word parsing and compiles a count of the (67 linguistic features developed by Biber)[mda.md].
+Lastly, polars is a type of data frame that pybiber utilizes. 
 
 ```{python}
 #spacy word parsing
@@ -102,24 +124,41 @@ import polars as pl
 ```
 
 ```{python}
+#loading the English word parsing from spacy
+#note that Named Entity Recognition (ner) has been disabled as it is not required for Biber features
 nlp = spacy.load("en_core_web_sm", disable=["ner"])
 ```
 
+Below, we are reading in the csv we have created in R to python as a polar.
+
 ```{python}
-#loading our df
+#loading our df as a polar (pl)
 all_transcripts = pl.read_csv("private/all_transcripts.csv")
 ```
+
 
 ```{python}
 #checking to see if we got the right df
 all_transcripts.head()
 ```
-```{python}
-processor = pb.CorpusProcessor()
-df_dramaticity = processor.process_corpus(all_transcripts, nlp_model=nlp)
-```
+Above is what the polar document roughly looks like! We have successfully tranformed our df into a polar. 
+
+Next, we will tag each word in each corpus with various information. As a reminder, `nlp` below is simply the English word parser from spacy.
 
 ```{python}
+#creating the processor from pybiber
+processor = pb.CorpusProcessor()
+#running the processor on our new data frame with the process_corpus function from pybiber
+df_dramaticity = processor.process_corpus(all_transcripts, nlp_model=nlp)
+
+df_dramaticity.tail()
+```
+Above, we can that it has taken each word and begun to tag it with the relevant features. This is still essentially spaCy parsing. 
+
+Below is what the pybiber package really adds. The `pb.biber` function below essentially counts the parsed text from above and assembles a count of the 67 linguistic features form Biber. 
+
+```{python}
+#creating a new df that has a count of the features for each document
 df_biber_dramaticity = pb.biber(df_dramaticity)
 ```
 
@@ -127,38 +166,44 @@ df_biber_dramaticity = pb.biber(df_dramaticity)
 print(f"Matrix dimensions: {df_biber_dramaticity.shape}")
 df_biber_dramaticity.head()
 ```
+Note that features have been normalized so that texts of different lengths can be compared:
+
+["Most features: Normalized per 1,000 tokens, f_43_type_token: Type-token ratio (0-1 scale), f_44_mean_word_length: Average characters per word"](https://browndw.github.io/pybiber/get-started.html)
+
 
 ```{python}
+#write out the df as a csv document back into the private folder
 df_biber_dramaticity.write_csv("private/df_biber_dramaticity")
 ```
 
 
-## Getting 67 Features
+## Getting Dimension Scores
 
-Now, we can move that file back into R. As can b seen at the end of the notebook, we write out a new csv file that contains the tagged words. These can now be run through the process to get the 67 linguistic features. 
+Now, we can move that file back into R. As can be seen at the end of the notebook, we wrote out a new csv file that contains the feature loadings for each text These can now be run through the process to get the 67 linguistic features. 
 
 ```{r}
 #| output: false
 
-#reads in the csv file created in the notebook
+#reads in the csv file created in python
 df_biber_dramaticity <- read.csv("private/df_biber_dramaticity")
 ```
 
+Once read in, the process described [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html) is used to run our first attempt at the MDA. Note that this was created by David Brown, a linguist at CMU!
 
-Once read in, the process described [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html) is used to run our first attempt at the mda. 
-
-It is worth noting that at this point, this is more of a test analysis in order to get a better idea of how the process works and be able to work backwards to understand how to improve the process.
+Note that the documents are being renamed below such that each individual file is represented by it's category and no other information. For instance, each comedy TV show will only be known as comedy. 
 
 ```{r}
 #| output: false
 
 #ok so first we are assigning our data set to the variable d
 d <- df_biber_dramaticity %>%
-  #then, we are modifying a column called doc_id to extract strings that are either transcript or trn for their respective data sources
-  mutate(doc_id = if_else(str_detect(doc_id, "transcript"), str_extract(doc_id, "transcript"), str_extract(doc_id, "trn"))) %>%
+  #then, we are modifying a column called doc_id to rename columns that contain either "comedy", "drama" or "trn" with "comedy", "drama", and "natural". 
+  mutate(doc_id = case_when(str_detect(doc_id, "comedy") ~ "comedy",
+                            str_detect(doc_id, "drama") ~ "drama",
+                            str_detect(doc_id, "trn") ~ "natural")) %>%
   #then we are modifying our new column so the strings are factors
   mutate(doc_id = as.factor(doc_id)) %>%
-  #this is identifying only the columns that aren't 0?
+  #removes the columns with values = 0
   select(where(~ any(. != 0)))
 ```
 
@@ -190,19 +235,24 @@ attributes(m)$group_means
 attributes(m)$loadings %>% arrange(-Factor1)
 ```
 
+## Creating Dimensions
+
+From these values, we can now create our dimensions. We do this by compiling the relevant factors for each dimension (>.35 0r >-.35) 
+
+
 ```{r}
-stickplot_mda(m, n_factor = 1)
+stickplot_mda(m, n_factor = 2)
 ```
 Not a very exciting graph with only a binary comparison!
 
 ```{r}
-heatmap_mda(m, n_factor = 1)
+heatmap_mda(m, n_factor = 2)
 ```
 
 This is a bit more telling. Interesting that emphatics appear to predict natural discourse here when compared to TV show dialogue. I hypothesized it might be the opposite. 
 
 ```{r}
-boxplot_mda(m, n_factor = 1)
+boxplot_mda(m, n_factor = 2)
 ```
 
 Last graph. Similar to the last one, this is just a measure of how different these document types are. Worth noting that the natural discourses varied a **lot** more and had several outliers. 

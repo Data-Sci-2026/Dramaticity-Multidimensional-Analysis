@@ -201,8 +201,6 @@ episode_links
 Once this list of links was compiled, I was able to iterate using the following mapping code:
 
 ```{r}
-#| eval: false
-
 x <- episode_links |>
   map(get_clean_script) 
 
@@ -223,8 +221,6 @@ y <- y |>
   select(-genre)
 
 tv_show_transcripts <- y
-
-tv_show_transcripts
 ```
 
 This code creates a private folder if there is no such folder already.

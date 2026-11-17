@@ -230,24 +230,17 @@ trn_df
 The code below was used to create a list of every file name from the zip folder. 
 
 ```{r}
-#| eval: false
-
 #here we go into the file TRN and pull out all of the full names for the files
 files = list.files("data/SBCorpus/TRN", full.names = TRUE)
-files
 ```
 
 And finally, the code below was used to map this function onto every file in the files list. 
 
 ```{r}
-#| eval: false
-
 list_files <- files |>
   map(get_clean_wrds) 
 
 sb_files <- do.call(rbind, list_files)
-
-sb_files
 ```
 
 This code creates a private folder if there is no such folder already.
@@ -262,7 +255,6 @@ With a private folder in place, we can write the csv file there so that we do no
 ```{r}
 write_csv(sb_files, "private/sb_files.csv")
 ```
-
 
 
 ## Overview of the Data
