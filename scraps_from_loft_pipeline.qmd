@@ -5,11 +5,14 @@ date: 10/25/2026
 format: gfm
 ---
 
-prereqs
+## Prereqs
+
+Note that the polite package was not available from CRAN when this project was being created. If that is still the case, an older version of the package can still be downloaded to utilize the polite features. 
+
 ```{r}
 library(tidyverse)
 library(rvest)
-remotes::install_github("dmi3kno/polite")
+library(polite)
 ```
 
 ## Intro
@@ -18,8 +21,7 @@ This document is a place for the pipeline to create the Scraps from the Loft dat
 
 ## Reading in the Data
 
-The code below shows how to do this with html filling in for a link to the page with the transcript. For the purposes of this document, we can look at the test page I used, the Adults Episode 4 transcript. 
-
+The code below shows how to do this with html filling in for a link to the page with the transcript. For the purposes of this document, we can look at the test page I used, the Adults Episode 4 transcript. Note that the polite package has not been incorporated yed since this is only one file. For loading multiple files, be sure to be polite (shown below)!
 
 ```{r}
 html <- "https://scrapsfromtheloft.com/tv-series/adults-s01e04-house-rules-transcript/"
@@ -78,6 +80,8 @@ show_df <- show_df |>
 
 ## The Final Function and Iteration
 
+The polite function has been incorporated in the code below. 
+
 ```{r}
 get_clean_script <- function(url) {
   
@@ -87,27 +91,27 @@ get_clean_script <- function(url) {
   #takes slowly
   html <- polite::scrape(session)
 
-  series <- str_remove(url, "https://scrapsfromtheloft.com/tv-series/") |>
             #removes the first part of the html link which is identical across transcripts
-    str_replace("-s\\d.+-", "-") |>
+  series <- str_remove(url, "https://scrapsfromtheloft.com/tv-series/") |>
     #replaces -s followed by a digit followed by any number of characters and then a - with a single -
-    str_remove("/") |>
+    str_replace("-s\\d.+-", "-") |>
     #removes remaining /
-    str_replace_all("-", "_")
+    str_remove("/") |>
     #replaces all -'s with _'s
+    str_replace_all("-", "_")
   
   show_script <- html |>
-  html_elements(".single-content p") |>
   #find all elements on the web page that are actually dialogue
-  html_text2()
+  html_elements(".single-content p") |>
   #turn those elements into only text
+  html_text2()
   
-  show_df <- data.frame(show_script) 
   #turn our character vector into a df
+  show_df <- data.frame(show_script) 
   
   show_df <- show_df |>
-  slice(-(1:4))
   #removes the first four rows which are not actually dialogue from the show
+  slice(-(1:4))
   
   #defines a function for cleaning each string in our df
   clean <- function(string) {
@@ -137,19 +141,17 @@ get_clean_script <- function(url) {
     mutate(show_script = replace_when(show_script, str_detect(show_script, "S\\d\\dE\\d\\d") ~ "")) |>
     #removes lines with no text
     filter(!show_script == '') 
-  
-  #removed a code here that wasn't doing anything?
 
   show_df <- show_df |>
-  summarize(show_script = str_flatten(show_script, " "))
   #returns a single cell data frame of all of the dialogue combined with spaces
+  summarize(show_script = str_flatten(show_script, " "))
   
   show_df <- show_df |>
   mutate(id = series,
          #adds a new column that gives the id based on the series
          .before = "show_script") |>
-  rename("clean_words" = show_script)
   #renames to clean_words so we can rbind this thing with the santa barbara df eventually making one big df!!!
+  rename("clean_words" = show_script)
 
 show_df
 }
@@ -176,7 +178,15 @@ dramas <- tv_show_df |>
 dramas
 ```
 
-The next important step was the compilation of the html links to feed through this function. Unfortunately, since each link referred to a specific episode and there was no clear way to know which episodes were included, this process had to be done manually. 
+However, the above code is just to explain the process. Some TV shows had to be replaced, so for an exact reference for the list used with genres included, the `genre_df` in the `data` folder can be used. 
+
+```{r}
+genre_df <- read_csv("data/genre_reference_df.csv")
+
+genre_df
+```
+
+The next important step was the compilation of the html links to feed through this function. Unfortunately, since each link referred to a specific episode and there was no clear way to know which episodes were included, this process had to be done manually. This list can also be found in the `data` folder. 
 
 First, we will need to read in the full vector of episode html links:
 
@@ -186,11 +196,6 @@ episode_links = readLines("data/html")
 episode_links
 ```
 
-In order to add the genres to our the name of each tv show file, I have included the data frame that contains each show by genre. The code below automatically adds this genre to the name of each transcript. The data frame is included in the data folder for replication. 
-
-```{r}
-read_csv("private/genre_reference_df.csv", genres)
-```
 
 
 Once this list of links was compiled, I was able to iterate using the following mapping code:
@@ -217,13 +222,16 @@ y <- y |>
   #get rid of genre
   select(-genre)
 
-y
+tv_show_transcripts <- y
+
+tv_show_transcripts
 ```
 
 This code creates a private folder if there is no such folder already.
 
 ```{r}
-if(!dir.exists "private") dir.create("private")
+if(!dir.exists("private")) 
+  dir.create("private")
 ```
 
 With a private folder in place, we can write the csv file there so that we do not have to recreate the file in the future.

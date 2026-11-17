@@ -32,8 +32,16 @@ It is not likely I will make use of this for this analysis, but it is good to be
 
 Second, the TV show data will come from [Scraps from the Loft](https://scrapsfromtheloft.com/tv-series-transcripts/).
 This website is a massive assembling of 3,264 completed episode transcripts from 315 different series. 
-I plan to select sixty episodes, each one from a different series, so that the number of documents is equal and, given the similarity in format, the word counts should be relatively balanced as well. 
+I plan to select sixty episodes, each one from a different series, so that the number of documents is equal and, given the similarity in format, the word counts should be relatively balanced as well.
+The following is a description of my criteria for selection which were found on wikipedia:
 
+- the language should be relatively modern (no shows from before 1980) and primarily use US dialects
+
+- only fictional, live action TV shows
+
+- must be originally filmed in English
+
+- must have at least two episodes on Scraps from the Loft
 
 ## The Analysis
 

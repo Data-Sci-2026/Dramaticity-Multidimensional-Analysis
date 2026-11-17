@@ -5,7 +5,8 @@ date: 10/25/2026
 format: gfm
 ---
 
-prereqs
+## Prereqs
+
 ```{r}
 library(tidyverse)
 ```
@@ -20,7 +21,7 @@ This document is a place for process for creating the Santa Barabara Code pipeli
 There were two different file types provided for the Santa Barbara Corpus- .trn and .cha. I decided to use .trn files since they seemed to read in more naturally as a data frame. For the purposes of this document, we can use the test .trn file I used, the first .trn.
 
 ```{r}
-file <- "private/SBCorpus/TRN/SBC001.trn"
+file <- "data/SBCorpus/TRN/SBC001.trn"
 
 #reads in a single trn file and lets R decide the column names
 trn_df <-  read_tsv(file, col_names = FALSE)
@@ -36,39 +37,14 @@ Also worth noting that I originally did not specify the delimiter. This was a bi
 
 The next step was to create a function called `clean()` that would clean each line of the transcript. This process started with identifying symbols that were not part of the actual dialogue and then figuring out what they meant. I listened to audio versions of the first .trn file to get a sense of any transcription markings I wasn't familiar with. Ultimately, I ended up with the following function for cleaning the lines. 
 
-It was necessary to create two functions inside of `clean()` in order to repeat phrases that were marked with a # words # pattern. These are described in detail below and in the final code. 
 
 ```{r}
-repetitions <- function(string) {
-  group <- string |>
-  #find the pattern we're looking for
-  str_extract_all("([1-9])[^X]*\\1")
-  times <- group |>
-  #figure out the marking of how many times it should occur
-  str_extract("[1-9]")
-  #turn that marking into an actual number
-  times <- as.numeric(times)
-  #multiply that string by the multiple
-  multiple <- strrep(group, times)
-  group <- string |>
-    #redefine the pattern we're looking for because group had to be renamed before (this is probably redundant but I'm confused rn so I don't wanna figure out the better way)
-  str_extract_all("([1-9])[^X]*\\1")
-
-  string |>
-  #replace the initial string with what we want
-    str_replace_all("([1-9])[^X]*\\1", multiple)
-}
-enact_repeats <- function(string) {
-  if_else(str_detect(string, "([1-9])[^X]*\\1"), repetitions(string), string)
-}
-#enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
 clean <- function(string) {
   string |>
-  #replaces a specific unicode symbol with apostrophe's because ONE of the files uses this
+  #replaces a very specific unicode symbol with apostrophe's because ONE of the files uses this
   str_replace_all("\x92", "'") |>
   #before anything, get rid of the #X# combinations cause that causes problems
   str_replace_all("[1-9]X+[1-9]", "") |>
-  enact_repeats()|>
   #replace a ( followed by any number of any characters but a ) and then a )
   str_replace_all("\\([^)]*\\)", "") |>
   #replace any < followed by any number of characters but space
@@ -80,16 +56,16 @@ clean <- function(string) {
   #replace a tilde followed by any character but a space with an empty string
   str_replace_all("~[^ ]*", "") |>
   #remove each of the symbols inside, all of them
-  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
+  str_remove_all("[\\[\\]+%@#=*X\\)\\(]") |>
   #remove two or more literal dots, all of them
   str_remove_all("\\.\\.+") |>
-  #removes exclamation points before a word
+  #removes all exclamation points that precede a word
   str_replace_all("!(\\w)", "\\1") |>
   #remove two or more dashes, all of them
   str_remove_all("--+") |>
   #remove all spaces at the beginning or end of the line
   str_replace_all("^ | $", "") |>
-  #replace spaces at the beginning and end of a line with no spaces
+  #removes numbers
   str_replace_all("[1-9]", " ") |>
   #replace any space larger than one spaces with single spaces
   str_replace_all("[ ]+", " ") |>
@@ -97,6 +73,7 @@ clean <- function(string) {
   str_replace_all(" \\.", "\\.") |>
   str_replace_all(" \\,", "\\,") 
 }
+#clean cleans up a data frame column made up of transcription markings to make it as close as possible to only dialogue. 
 ```
 
 In order to clean the column, we first select only the last column (defined by `columns`) and then use the function outlined above. 
@@ -183,38 +160,13 @@ columns <- ncol(trn_df)
 trn_wrds <- trn_df |>
   select(words = columns)
 
-# Function Definitions
 
-#repetitions takes a given string and multiplies it by numbers that surround the string
-repetitions <- function(string) {
-  group <- string |>
-  #find the pattern we're looking for
-  str_extract_all("([1-9])[^X]*\\1")
-  times <- group |>
-  #figure out the marking of how many times it should occur
-  str_extract("[1-9]")
-  #turn that marking into an actual number
-  times <- as.numeric(times)
-  #multiply that string by the multiple
-  multiple <- strrep(group, times)
-  group <- string |>
-  #redefine the pattern we're looking for because group had to be renamed before (this is probably redundant but I'm confused rn so I don't wanna figure out the better way)
-  str_extract_all("([1-9])[^X]*\\1")
-  string |>
-  #replace the initial string with what we want
-    str_replace_all("([1-9])[^X]*\\1", multiple)
-}
-#enact_repeats finds strings surrounded by numbers and enacts repetitions function (explained above)
-enact_repeats <- function(string) {
-  if_else(str_detect(string, "([1-9])[^X]*\\1"), repetitions(string), string)
-}
 clean <- function(string) {
   string |>
   #replaces a very specific unicode symbol with apostrophe's because ONE of the files uses this
   str_replace_all("\x92", "'") |>
   #before anything, get rid of the #X# combinations cause that causes problems
   str_replace_all("[1-9]X+[1-9]", "") |>
-  enact_repeats()|>
   #replace a ( followed by any number of any characters but a ) and then a )
   str_replace_all("\\([^)]*\\)", "") |>
   #replace any < followed by any number of characters but space
@@ -226,7 +178,7 @@ clean <- function(string) {
   #replace a tilde followed by any character but a space with an empty string
   str_replace_all("~[^ ]*", "") |>
   #remove each of the symbols inside, all of them
-  str_remove_all("[\\[\\]+%@=*X\\)\\(]") |>
+  str_remove_all("[\\[\\]+%@#=*X\\)\\(]") |>
   #remove two or more literal dots, all of them
   str_remove_all("\\.\\.+") |>
   #removes all exclamation points that precede a word
@@ -293,15 +245,16 @@ And finally, the code below was used to map this function onto every file in the
 list_files <- files |>
   map(get_clean_wrds) 
 
-all_trns <- do.call(rbind, list_files)
+sb_files <- do.call(rbind, list_files)
 
-all_trns
+sb_files
 ```
 
 This code creates a private folder if there is no such folder already.
 
 ```{r}
-if(!dir.exists "private") dir.create("private")
+if(!dir.exists("private")) 
+  dir.create("private")
 ```
 
 With a private folder in place, we can write the csv file there so that we do not have to recreate the file in the future.
