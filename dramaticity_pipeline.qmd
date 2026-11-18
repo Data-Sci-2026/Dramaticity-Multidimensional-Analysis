@@ -176,7 +176,6 @@ Note that features have been normalized so that texts of different lengths can b
 df_biber_dramaticity.write_csv("private/df_biber_dramaticity")
 ```
 
-
 ## Getting Dimension Scores
 
 Now, we can move that file back into R. As can be seen at the end of the notebook, we wrote out a new csv file that contains the feature loadings for each text These can now be run through the process to get the 67 linguistic features. 
