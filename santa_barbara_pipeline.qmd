@@ -33,6 +33,45 @@ Originally, I named the columns. However, I later realized that some of the file
 
 Also worth noting that I originally did not specify the delimiter. This was a big mistake. The last file has a weird unicode symbol thrown in for some reason and it took a while to figure out that I just needed to specify the delimiter (and add some regex to clean up the unicode). 
 
+Unfortunately, the problems did not end there. These files also had some minor corruption of some kind that caused null embeddings. Five of the files had a 'c' character replaced with a null character. Using notepad++, I was able to find these characters by searching `\x{0000}` in the regex search. These changes are reflected in the trns in the `data` folder. 
+
+Additionally, the files have numerous inconsistencies in terms of tab delimiters, comment typos, and various other issues. As a result, some work had to be done on the files before they could even be safely transformed into data frames.
+
+To this end, the following function was created:
+
+```{r}
+clean_files <- function(file) {
+
+#removes comments
+file <- file[!str_detect(file, "^000")]
+
+#removes mid line comments 
+file <- str_remove(file, "000000000.*")
+
+#indents an extra line
+file <- str_replace(file, "[A-Z]+: (\\d\\d?\\.)", "\n\\1") |> unlist() 
+
+#removes initial tabs
+file <- str_remove(file, "^\t")
+
+#removes white space on the right side of text
+file <- str_trim(file, side = "right")
+
+#removes speaker names followed by : with an optional _digit pattern between
+file <- str_remove_all(file, "[A-Z]+_?\\d?:")
+#removes speaker names not followed by colon as long as they are longer than 4
+file <- str_remove_all(file, "[A-Z]{4,}")
+
+#removes all time stamps
+file <- str_remove_all(file, "\\d+\\.\\d+\t\\d+\\.\\d+")
+file <- str_remove_all(file, "\\d+\\.\\d+ \\d+\\.\\d+")
+
+#removes all tabs
+file <- str_remove_all(file, "\t")
+}
+```
+
+
 ## Cleaning the text
 
 The next step was to create a function called `clean()` that would clean each line of the transcript. This process started with identifying symbols that were not part of the actual dialogue and then figuring out what they meant. I listened to audio versions of the first .trn file to get a sense of any transcription markings I wasn't familiar with. Ultimately, I ended up with the following function for cleaning the lines. 
@@ -260,6 +299,7 @@ write_csv(sb_files, "private/sb_files.csv")
 ## Overview of the Data
 
 The resulting data frame is made up of the sixty observations of individual trn files. The file number is listed under the `id` column. In the `clean_wrds` column, the clean text of each file is included. In total, we have approximately  249,000 word tokens in the text section.  
+
 
 ```{r}
 sessionInfo()
