@@ -132,7 +132,7 @@ new_paths <- file.path("private/SBCorpus_cleaned",
   basename(files))
 
 #map those files onto file paths and the lines onto those names
-map2(new_files, new_paths, write_lines)
+invisible(map2(new_files, new_paths, write_lines))
 ```
 
 We now have our new files that can be read through a mapping function as dfs without issue. 

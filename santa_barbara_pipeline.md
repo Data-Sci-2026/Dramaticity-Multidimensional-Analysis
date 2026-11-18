@@ -75,6 +75,176 @@ was a big mistake. The last file has a weird unicode symbol thrown in
 for some reason and it took a while to figure out that I just needed to
 specify the delimiter (and add some regex to clean up the unicode).
 
+## Cleaning the Data
+
+Unfortunately, the problems did not end there. These files also had some
+minor corruption of some kind that caused null embeddings. Five of the
+files had a ‘c’ character replaced with a null character. Using
+notepad++, I was able to find these characters by searching `\x{0000}`
+in the regex search. These changes are reflected in the trns in the
+`data` folder.
+
+Additionally, the files have numerous inconsistencies in terms of tab
+delimiters, comment typos, and various other issues. As a result, some
+work had to be done on the files before they could even be safely
+transformed into data frames.
+
+To this end, the following function was created:
+
+``` r
+clean_files <- function(file) {
+
+#removes comments
+file <- file[!str_detect(file, "^000")]
+
+#removes mid line comments 
+file <- str_remove(file, "000000000.*")
+
+#indents an extra line
+file <- str_replace(file, "[A-Z]+: (\\d\\d?\\.)", "\n\\1") |> unlist() 
+
+#removes initial tabs
+file <- str_remove(file, "^\t")
+
+#removes white space on the right side of text
+file <- str_trim(file, side = "right")
+
+#removes speaker names followed by : with an optional _digit pattern between
+file <- str_remove_all(file, "[A-Z]+_?\\d?:")
+#removes speaker names not followed by colon as long as they are longer than 4
+file <- str_remove_all(file, "[A-Z]{4,}")
+
+#removes all time stamps
+file <- str_remove_all(file, "\\d+\\.\\d+\t\\d+\\.\\d+")
+file <- str_remove_all(file, "\\d+\\.\\d+ \\d+\\.\\d+")
+
+#removes all tabs
+file <- str_remove_all(file, "\t")
+}
+```
+
+Below, we can see the results on a single file. We now have only text
+remaining and only one column to deal with.
+
+``` r
+trn_df <- clean_files(read_lines(file))
+
+trn_df[1:20]
+```
+
+     [1] " ... So you don't need to go ... borrow equipment from anybody,"
+     [2] "        to --"                                                  
+     [3] "        ... to do the feet?"                                    
+     [4] "        ... [Do the hooves]?"                                   
+     [5] "      [(H)=] <YWN Well,"                                        
+     [6] "           we're gonna have to find somewhere,"                 
+     [7] "        to get,"                                                
+     [8] "        (Hx) ... something (Hx) YWN>."                          
+     [9] "  .. So,"                                                       
+    [10] "        [~Mae-] --"                                             
+    [11] "  [I'm gonna] (Hx) --"                                          
+    [12] "  [2~Mae ~Lynne XX2]"                                           
+    [13] "  [2(H) We're not2] gonna do the feet today,"                   
+    [14] "        I'm gonna wait till like,"                              
+    [15] "        early in the morning=,"                                 
+    [16] "        .. to do those,"                                        
+    [17] "        cause y- --"                                            
+    [18] "        I mean you get s=o ti=red."                             
+    [19] "        (H) ... n- you just,"                                   
+    [20] "        ... it takes % --"                                      
+
+And here is our single file read in from the cleaned data.
+
+``` r
+file <- "private/SBCorpus_cleaned/SBC001.trn"
+
+#reads in a single trn file and lets R decide the column names
+trn_df <-  read_tsv(file, col_names = FALSE)
+```
+
+    Rows: 1312 Columns: 1
+    ── Column specification ────────────────────────────────────────────────────────
+    Delimiter: "\t"
+    chr (1): X1
+
+    ℹ Use `spec()` to retrieve the full column specification for this data.
+    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+
+``` r
+trn_df
+```
+
+    # A tibble: 1,312 × 1
+       X1                                                            
+       <chr>                                                         
+     1 ... So you don't need to go ... borrow equipment from anybody,
+     2 to --                                                         
+     3 ... to do the feet?                                           
+     4 ... [Do the hooves]?                                          
+     5 [(H)=] <YWN Well,                                             
+     6 we're gonna have to find somewhere,                           
+     7 to get,                                                       
+     8 (Hx) ... something (Hx) YWN>.                                 
+     9 .. So,                                                        
+    10 [~Mae-] --                                                    
+    # ℹ 1,302 more rows
+
+In order to iterate, we will need a list of all the file paths.
+
+``` r
+#here we go into the file TRN and pull out all of the full names for the files
+files = list.files("data/SBCorpus/TRN", full.names = TRUE)
+```
+
+``` r
+new_files <- files |>
+  #first, we read the lines of every file
+  map(read_lines) |>
+  #then, we clean all of them
+  map(clean_files)
+```
+
+Once this has been done, `new_files` is a list of the full documents.
+Now, we need to store all of them back onto file paths. First, though,
+we need a new folder. We do not want to overwrite the old files since we
+might want to use them later on. Instead, we can use the same file names
+but store them in a distinct place.
+
+This code creates a private folder if there is no such folder already.
+
+``` r
+if(!dir.exists("private")) 
+  dir.create("private")
+```
+
+And this code creates a new folder within private to store the cleaned
+files.
+
+``` r
+#make a new folder for the fixed files
+dir.create("private/SBCorpus_cleaned")
+```
+
+    Warning in dir.create("private/SBCorpus_cleaned"): 'private\SBCorpus_cleaned'
+    already exists
+
+Finally, we have to create the paths for these files based on the old
+ones inside of our new folder, then map our new files onto new paths and
+write out the lines into those names.
+
+``` r
+#create a list of file paths
+new_paths <- file.path("private/SBCorpus_cleaned",
+  #this gets the name of each file from the relative path
+  basename(files))
+
+#map those files onto file paths and the lines onto those names
+invisible(map2(new_files, new_paths, write_lines))
+```
+
+We now have our new files that can be read through a mapping function as
+dfs without issue.
+
 ## Cleaning the text
 
 The next step was to create a function called `clean()` that would clean
@@ -130,39 +300,27 @@ In order to clean the column, we first select only the last column
 columns <- ncol(trn_df)
 
 trn_wrds <- trn_df |>
-  select(words = columns)
-```
+  select(words = all_of(columns))
 
-    Warning: Using an external vector in selections was deprecated in tidyselect 1.1.0.
-    ℹ Please use `all_of()` or `any_of()` instead.
-      # Was:
-      data %>% select(columns)
-
-      # Now:
-      data %>% select(all_of(columns))
-
-    See <https://tidyselect.r-lib.org/reference/faq-external-vector.html>.
-
-``` r
 clean_trn_wrds <- trn_wrds |>
   mutate(clean_words = clean(words))
 
-clean_trn_wrds
+trn_df
 ```
 
-    # A tibble: 1,312 × 2
-       words                                                          clean_words   
-       <chr>                                                          <chr>         
-     1 ... So you don't need to go ... borrow equipment from anybody, "So you don't…
-     2 to --                                                          "to"          
-     3 ... to do the feet?                                            "to do the fe…
-     4 ... [Do the hooves]?                                           "Do the hoove…
-     5 [(H)=] <YWN Well,                                              " Well,"      
-     6 we're gonna have to find somewhere,                            "we're gonna …
-     7 to get,                                                        "to get,"     
-     8 (Hx) ... something (Hx) YWN>.                                  " something." 
-     9 .. So,                                                         "So,"         
-    10 [~Mae-] --                                                     ""            
+    # A tibble: 1,312 × 1
+       X1                                                            
+       <chr>                                                         
+     1 ... So you don't need to go ... borrow equipment from anybody,
+     2 to --                                                         
+     3 ... to do the feet?                                           
+     4 ... [Do the hooves]?                                          
+     5 [(H)=] <YWN Well,                                             
+     6 we're gonna have to find somewhere,                           
+     7 to get,                                                       
+     8 (Hx) ... something (Hx) YWN>.                                 
+     9 .. So,                                                        
+    10 [~Mae-] --                                                    
     # ℹ 1,302 more rows
 
 Above, we see the clean version in the second column!
@@ -220,6 +378,8 @@ trn_text
     1 So you don't need to go borrow equipment from anybody, to to do the feet? Do …
 
 This successfully collapses the data frame into a single observation.
+When mapped onto all the files, it will combine each of their lines into
+a single string for each of them.
 
 ## Making the id column
 
@@ -253,13 +413,13 @@ get_clean_wrds <- function(file) {
 trn <- str_extract(file, "\\d+")
   
 #read in a file as a df
-trn_df <-  read_tsv(file, col_names = FALSE)
+trn_df <-  read_tsv(file, col_names = FALSE, show_col_types = FALSE)
 
 #ok we're trying something much simpler than we had before. At this point the pattern can be described as "select a column number equal to the number of columns because we always want the last column. So if we just get ourselves that variable and then just select that, we should be fine
 columns <- ncol(trn_df)
 
 trn_wrds <- trn_df |>
-  select(words = columns)
+  select(words = all_of(columns))
 
 
 clean <- function(string) {
@@ -328,654 +488,21 @@ trn_df
 }
 ```
 
-The code below was used to create a list of every file name from the zip
-folder.
+The code below was used to create a list of every file name from the new
+folder folder.
 
 ``` r
-#here we go into the file TRN and pull out all of the full names for the files
-files = list.files("data/SBCorpus/TRN", full.names = TRUE)
+cleaned_files <- list.files("private/SBCorpus_cleaned", full.names = TRUE)
 ```
 
 And finally, the code below was used to map this function onto every
 file in the files list.
 
 ``` r
-list_files <- files |>
+list_files <- cleaned_files |>
   map(get_clean_wrds) 
-```
 
-    Rows: 1312 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1419 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1546 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1297 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 826 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1767 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 730 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1496 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 725 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1107 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 996 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1043 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 2259 Columns: 3
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X1, X2, X3
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1188 Columns: 2
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1984 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1518 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1169 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 566 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1266 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 840 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1197 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 705 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1518 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 875 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 724 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 904 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 739 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (3): X2, X3, X4
-    dbl (1): X1
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1535 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1214 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 745 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1539 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1845 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 816 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 739 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1330 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1822 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 978 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 667 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1312 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 626 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 993 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 715 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1497 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1431 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1197 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 781 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1162 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1128 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1273 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 959 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1681 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1607 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 864 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 615 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 832 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1600 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-    Rows: 1012 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 982 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1857 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-    Warning: One or more parsing issues, call `problems()` on your data frame for details,
-    e.g.:
-      dat <- vroom(...)
-      problems(dat)
-
-    Rows: 1013 Columns: 4
-    ── Column specification ────────────────────────────────────────────────────────
-    Delimiter: "\t"
-    chr (2): X3, X4
-    dbl (2): X1, X2
-
-    ℹ Use `spec()` to retrieve the full column specification for this data.
-    ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
-
-``` r
-sb_files <- do.call(rbind, list_files)
-```
-
-This code creates a private folder if there is no such folder already.
-
-``` r
-if(!dir.exists("private")) 
-  dir.create("private")
+sb_files <- bind_rows(list_files)
 ```
 
 With a private folder in place, we can write the csv file there so that
