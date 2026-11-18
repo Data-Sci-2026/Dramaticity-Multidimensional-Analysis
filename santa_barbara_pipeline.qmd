@@ -33,6 +33,8 @@ Originally, I named the columns. However, I later realized that some of the file
 
 Also worth noting that I originally did not specify the delimiter. This was a big mistake. The last file has a weird unicode symbol thrown in for some reason and it took a while to figure out that I just needed to specify the delimiter (and add some regex to clean up the unicode). 
 
+## Cleaning the Data
+
 Unfortunately, the problems did not end there. These files also had some minor corruption of some kind that caused null embeddings. Five of the files had a 'c' character replaced with a null character. Using notepad++, I was able to find these characters by searching `\x{0000}` in the regex search. These changes are reflected in the trns in the `data` folder. 
 
 Additionally, the files have numerous inconsistencies in terms of tab delimiters, comment typos, and various other issues. As a result, some work had to be done on the files before they could even be safely transformed into data frames.
@@ -71,6 +73,69 @@ file <- str_remove_all(file, "\t")
 }
 ```
 
+Below, we can see the results on a single file. We now have only text remaining and only one column to deal with.
+
+```{r}
+trn_df <- clean_files(read_lines(file))
+
+trn_df[1:20]
+```
+
+And here is our single file read in from the cleaned data.
+
+```{r}
+file <- "private/SBCorpus_cleaned/SBC001.trn"
+
+#reads in a single trn file and lets R decide the column names
+trn_df <-  read_tsv(file, col_names = FALSE)
+
+trn_df
+```
+
+In order to iterate, we will need a list of all the file paths. 
+
+```{r}
+#here we go into the file TRN and pull out all of the full names for the files
+files = list.files("data/SBCorpus/TRN", full.names = TRUE)
+```
+
+```{r}
+new_files <- files |>
+  #first, we read the lines of every file
+  map(read_lines) |>
+  #then, we clean all of them
+  map(clean_files)
+```
+
+Once this has been done, `new_files` is a list of the full documents. Now, we need to store all of them back onto file paths. First, though, we need a new folder. We do not want to overwrite the old files since we might want to use them later on. Instead, we can use the same file names but store them in a distinct place. 
+
+This code creates a private folder if there is no such folder already.
+
+```{r}
+if(!dir.exists("private")) 
+  dir.create("private")
+```
+
+And this code creates a new folder within private to store the cleaned files. 
+
+```{r}
+#make a new folder for the fixed files
+dir.create("private/SBCorpus_cleaned")
+```
+
+Finally, we have to create the paths for these files based on the old ones inside of our new folder, then map our new files onto new paths and write out the lines into those names. 
+
+```{r}
+#create a list of file paths
+new_paths <- file.path("private/SBCorpus_cleaned",
+  #this gets the name of each file from the relative path
+  basename(files))
+
+#map those files onto file paths and the lines onto those names
+map2(new_files, new_paths, write_lines)
+```
+
+We now have our new files that can be read through a mapping function as dfs without issue. 
 
 ## Cleaning the text
 
@@ -121,12 +186,12 @@ In order to clean the column, we first select only the last column (defined by `
 columns <- ncol(trn_df)
 
 trn_wrds <- trn_df |>
-  select(words = columns)
+  select(words = all_of(columns))
 
 clean_trn_wrds <- trn_wrds |>
   mutate(clean_words = clean(words))
 
-clean_trn_wrds
+trn_df
 ```
 
 Above, we see the clean version in the second column!
@@ -160,7 +225,7 @@ trn_text <- trn_text |>
 trn_text
 ```
 
-This successfully collapses the data frame into a single observation. 
+This successfully collapses the data frame into a single observation. When mapped onto all the files, it will combine each of their lines into a single string for each of them. 
 
 
 ## Making the id column
@@ -191,13 +256,13 @@ get_clean_wrds <- function(file) {
 trn <- str_extract(file, "\\d+")
   
 #read in a file as a df
-trn_df <-  read_tsv(file, col_names = FALSE)
+trn_df <-  read_tsv(file, col_names = FALSE, show_col_types = FALSE)
 
 #ok we're trying something much simpler than we had before. At this point the pattern can be described as "select a column number equal to the number of columns because we always want the last column. So if we just get ourselves that variable and then just select that, we should be fine
 columns <- ncol(trn_df)
 
 trn_wrds <- trn_df |>
-  select(words = columns)
+  select(words = all_of(columns))
 
 
 clean <- function(string) {
@@ -266,28 +331,21 @@ trn_df
 }
 ```
 
-The code below was used to create a list of every file name from the zip folder. 
+The code below was used to create a list of every file name from the new folder folder. 
 
 ```{r}
-#here we go into the file TRN and pull out all of the full names for the files
-files = list.files("data/SBCorpus/TRN", full.names = TRUE)
+cleaned_files <- list.files("private/SBCorpus_cleaned", full.names = TRUE)
 ```
 
 And finally, the code below was used to map this function onto every file in the files list. 
 
 ```{r}
-list_files <- files |>
+list_files <- cleaned_files |>
   map(get_clean_wrds) 
 
-sb_files <- do.call(rbind, list_files)
+sb_files <- bind_rows(list_files)
 ```
 
-This code creates a private folder if there is no such folder already.
-
-```{r}
-if(!dir.exists("private")) 
-  dir.create("private")
-```
 
 With a private folder in place, we can write the csv file there so that we do not have to recreate the file in the future.
 
