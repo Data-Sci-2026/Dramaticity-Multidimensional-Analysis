@@ -11,11 +11,9 @@ This pipeline was used for progress report 2, it has been updated to reflect the
 
 ## Prereqs
 
-In addition to tidyverse packages, `corrplot`, `mda.biber`, and `polars` will all be needed. Polars is a special, relatively new type of data frame often used in python. This package is only necessary for transforming data frames so that python can use them properly. 
+In addition to tidyverse packages, `corrplot`, `mda.biber`, `spacyr`, `udpipe`, and `quanteda` will all need to be installed. 
 
-Additionally, an installation of python (3.10+), pandas, NumPy, and spaCy is required to complete the process described below. Once these are installed, everything can be completed within R as described below. 
-
-[Information on python side](https://browndw.github.io/pybiber/)
+Additionally, an installation of python (3.10+). Once these are installed, everything can be completed within R as described below. 
 
 [Information on spaCy](https://spacy.io/usage)
 
@@ -23,7 +21,10 @@ Additionally, an installation of python (3.10+), pandas, NumPy, and spaCy is req
 library(tidyverse)
 library(corrplot)
 library(mda.biber)
-library(polars)
+library(spacyr)
+library(quanteda)
+library(udpipe)
+library(pseudobibeR)
 ```
 
 ## Intro
@@ -99,7 +100,7 @@ Approximate number of words by category:
 
 ```{r}
 all_transcripts |>
-  mutate(id = case_when(str_detect(doc_id, "trn") ~ "natural", 
+  mutate(doc_id = case_when(str_detect(doc_id, "trn") ~ "natural", 
                         str_detect(doc_id, "comedy") ~ "comedy", 
                         str_detect(doc_id, "drama") ~ "drama")) |>
   mutate(nwords = (str_count(text, "\\w+"))) |>
@@ -109,85 +110,47 @@ all_transcripts |>
 
 ## Tagging all_transcripts and Getting Factor Loadings
 
-Tagging the transcripts required a python package. This process was first completed in an ipynb file, but it can also be run in cells within R as is show below.  
+In order to parse the data, it is necessary to use spaCy to tag all of the words in the document. Then, an r package called `pseudobibeR` can be used to get the 67 linguistic features created by Biber. For more details on the process, see [here](https://github.com/browndw/pseudobibeR). Note that this package and the following were created by David Brown, a linguist at CMU!
 
-Here, spacy is being downloaded as this is the word parser we are using. Pybiber is a python package that runs word parsing and compiles a count of the (67 linguistic features developed by Biber)[mda.md].
-Lastly, polars is a type of data frame that pybiber utilizes. 
+First, we can ensure that all texts are normalized and in a corpus format. A glimpse of the corpus format can be seen below.
 
-```{python}
-#spacy word parsing
-import spacy
-#pybiber
-import pybiber as pb
-#polars data frames
-import polars as pl
+```{r}
+# 1. Read the texts and normalize typographic quotes (’ -> ')
+all_transcripts$clean_words <- utf8::utf8_normalize(all_transcripts$clean_words, map_quote = TRUE)
+corp <- corpus(all_transcripts)
+
+corp
+```
+Next, we will download an English parsing model through `udpipe`. 
+
+```{r}
+# 2. Parse with udpipe (the model is downloaded once)
+model <- udpipe_download_model(language = "english")
 ```
 
-```{python}
-#loading the English word parsing from spacy
-#note that Named Entity Recognition (ner) has been disabled as it is not required for Biber features
-nlp = spacy.load("en_core_web_sm", disable=["ner"])
+```{r}
+ud_model <- udpipe_load_model(model$file_model)
 ```
 
-Below, we are reading in the csv we have created in R to python as a polar.
+And parse each character in the corpus. This process takes some time, around ten minutes. 
 
-```{python}
-#loading our df as a polar (pl)
-all_transcripts = pl.read_csv("private/all_transcripts.csv")
+```{r}
+parsed <- udpipe_annotate(ud_model, x = as.character(corp), doc_id = docnames(corp), trace = 100)
 ```
 
+Finally, we can get the feature weights which will be used in the second half of functions. This function also takes some time to run, about five minutes. 
 
-```{python}
-#checking to see if we got the right df
-all_transcripts.head()
-```
-Above is what the polar document roughly looks like! We have successfully tranformed our df into a polar. 
-
-Next, we will tag each word in each corpus with various information. As a reminder, `nlp` below is simply the English word parser from spacy.
-
-```{python}
-#creating the processor from pybiber
-processor = pb.CorpusProcessor()
-#running the processor on our new data frame with the process_corpus function from pybiber
-df_dramaticity = processor.process_corpus(all_transcripts, nlp_model=nlp)
-
-df_dramaticity.tail()
-```
-Above, we can that it has taken each word and begun to tag it with the relevant features. This is still essentially spaCy parsing. 
-
-Below is what the pybiber package really adds. The `pb.biber` function below essentially counts the parsed text from above and assembles a count of the 67 linguistic features form Biber. 
-
-```{python}
-#creating a new df that has a count of the features for each document
-df_biber_dramaticity = pb.biber(df_dramaticity)
+```{r}
+# 3. Count the features: one row per document
+features <- biber(parsed)
 ```
 
-```{python}
-print(f"Matrix dimensions: {df_biber_dramaticity.shape}")
-df_biber_dramaticity.head()
-```
-Note that features have been normalized so that texts of different lengths can be compared:
-
-["Most features: Normalized per 1,000 tokens, f_43_type_token: Type-token ratio (0-1 scale), f_44_mean_word_length: Average characters per word"](https://browndw.github.io/pybiber/get-started.html)
-
-
-```{python}
-#write out the df as a csv document back into the private folder
-df_biber_dramaticity.write_csv("private/df_biber_dramaticity")
-```
 
 ## Getting Dimension Scores
 
-Now, we can move that file back into R. As can be seen at the end of the notebook, we wrote out a new csv file that contains the feature loadings for each text These can now be run through the process to get the 67 linguistic features. 
+As can be seen in the features data structure, have feature loadings for each text. These can now be run through another series of functions to get the overall scores for the 67 linguistic features for each text. 
 
-```{r}
-#| output: false
-
-#reads in the csv file created in python
-df_biber_dramaticity <- read.csv("private/df_biber_dramaticity")
-```
-
-Once read in, the process described [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html) is used to run our first attempt at the MDA. Note that this was created by David Brown, a linguist at CMU!
+Once read in, the process described [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html) is used to run our first attempt at the MDA. 
 
 Note that the documents are being renamed below such that each individual file is represented by it's category and no other information. For instance, each comedy TV show will only be known as comedy. 
 
@@ -195,13 +158,13 @@ Note that the documents are being renamed below such that each individual file i
 #| output: false
 
 #ok so first we are assigning our data set to the variable d
-d <- df_biber_dramaticity %>%
+d <- features |>
   #then, we are modifying a column called doc_id to rename columns that contain either "comedy", "drama" or "trn" with "comedy", "drama", and "natural". 
   mutate(doc_id = case_when(str_detect(doc_id, "comedy") ~ "comedy",
                             str_detect(doc_id, "drama") ~ "drama",
-                            str_detect(doc_id, "trn") ~ "natural")) %>%
+                            str_detect(doc_id, "trn") ~ "natural")) |>
   #then we are modifying our new column so the strings are factors
-  mutate(doc_id = as.factor(doc_id)) %>%
+  mutate(doc_id = as.factor(doc_id)) |>
   #removes the columns with values = 0
   select(where(~ any(. != 0)))
 ```
