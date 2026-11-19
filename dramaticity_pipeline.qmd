@@ -82,11 +82,17 @@ write_csv(all_transcripts, "private/all_transcripts.csv")
 
 Below is some summary information about what is included in all_transcripts:
 
-Number of rows and columns in our df
+Number of rows and columns in our df and breakdown of genre
 
 ```{r}
 nrow(all_transcripts)
 ncol(all_transcripts)
+all_transcripts |>
+  mutate(doc_id = case_when(str_detect(doc_id, "trn") ~ "natural", 
+                        str_detect(doc_id, "comedy") ~ "comedy", 
+                        str_detect(doc_id, "drama") ~ "drama")) |>
+  mutate(nwords = (str_count(text, "\\w+"))) |>
+  count(doc_id)
 ```
 
 Approximate number of words in our df:

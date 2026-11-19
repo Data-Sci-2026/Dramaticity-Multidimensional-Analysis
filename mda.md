@@ -20,9 +20,17 @@ For the present study, we are comparing two texts which should be relatively sim
 TV show transcripts are meant to simulate real conversations.
 They are both spoken language (as opposed to written) and they are both less likely to be particularly formal. 
 However, there are significant differences between these two types of dialogue. 
-For the present mda, the difference focused on is dramaticity. 
+For the present MDA, the difference focused on is dramaticity. 
 In order to accomplish this, we need to decide on a list of linguistic features that might influence how 'dramatic' a text sounds. 
 Fortunately for us, Biber has already come up with a very useful list of 67 features that defines multiple dimensions across English texts.
+
+
+### Deciding on the number of dimensions
+
+While much of the practical advice is 'baked in' to the packages we are using, it is still important to understand what is happening behind the curtain. 
+
+A principal factor analysis goes through all of the factors and finds the largest possible grouping of shared variance.
+A scree plot is a useful tool for visualizing this distribution. 
 
 ### The Follow Up
 

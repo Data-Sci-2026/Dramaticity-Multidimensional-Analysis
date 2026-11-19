@@ -55,7 +55,6 @@ Derived or transformed data also cannot be shared.
 
 The final summary data tables will also not be shared as the constitute derivations of the original data.
 
-
 ### Dramaticity Pipeline
 
 I have created the final pipeline document for this project, [Dramaticity Pipeline](dramaticity_pipeline.md). 
@@ -85,5 +84,24 @@ For one thing, a greater number of emphatics appear to be more indicative of les
 It is possible this is because we see more repetition in natural discourse. 
 It would be worth mapping the kinds of emphatics that are used in their respective genres to get a more nuanced understanding of the difference.
 
+## Progress Report 3
+
+### Title
+
+A title has been added to the readme!
+
+### Pseudobiber
+
+The pseudobiber package has been fully incorporated, and I think it is a useful addition. 
+I have also added more to biber_notes, specifically in terms of deciding on number of factors and interpreting mean factor scores. 
+
+
+### Analysis
+
+While I did not accomplish as much as I wanted in terms of analysis, the introduction of a contrast between comedy and drama TV shows has immediately helped distil the observations possible.
+A comparison of the two different dimensions among the three groups should allow for a lot of rich comparisons between linguistic features.
+In particular, based on literature in TV shows, I think it is very promising that two dimensions arose. 
+Generally speaking, the first dimension seems to be a matter of the "dramatic" forms of language we are hoping to find.
+Dimension two seems to be a better fit for the more practical differences between all TV shows and natural discourse such as higher specificity and less redundency in TV show dialogue.
 
 
