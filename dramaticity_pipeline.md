@@ -91,7 +91,7 @@ the component data frames were assembled and where the data came from.
 
 This document is used to describe how the individual data frames were
 combined, the shape of the resulting data frame, and the steps of the
-analysis. Finally, it will brielfy go over the results. If more details
+analysis. Finally, it will briefly go over the results. If more details
 are needed to explain the steps of the MDA, see the [MDA
 document](mda.md). Final results and exploration of the analysis is
 documented in the [Dramaticity Analysis](final_report.md) document.
@@ -248,11 +248,11 @@ around ten minutes.
 parsed <- udpipe_annotate(ud_model, x = as.character(corp), doc_id = docnames(corp), trace = 100)
 ```
 
-    2026-11-19 10:57:19.84044 Annotating text fragment 1/120
-    2026-11-19 11:05:02.148775 Annotating text fragment 101/120
+    2026-11-19 11:41:36.019404 Annotating text fragment 1/120
+    2026-11-19 11:50:13.012655 Annotating text fragment 101/120
 
 Finally, we can get the feature weights which will be used in the second
-half of functions. This function also takes some time to run, about five
+half of functions. This function also takes some time to run, about 2-3
 minutes.
 
 ``` r
@@ -262,9 +262,10 @@ features <- biber(parsed)
 
 ## Getting Dimension Scores
 
-As can be seen in the `features` data structure, have feature loadings
+As can be seen in the `features` data structure, we have feature counts
 for each text. These can now be run through another series of functions
-to get the overall scores for the 67 linguistic features for each text.
+to get the overall feature scores for the 67 linguistic features for
+each text and dimension scores.
 
 Once read in, the process described
 [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html)
@@ -323,7 +324,7 @@ elbow or how many dimensions to include. If it is found that more
 dimensions might better suit an understanding of the data, re-analysis
 should be done.
 
-In order to be sure that an mda is worth running, we want to see that
+In order to be sure that an MDA is worth running, we want to see that
 there is high correlation and inverse correlation among textual
 features. While this step is expected for textual features, it is still
 nice to run to be sure.
@@ -340,7 +341,9 @@ As we can see, there are multiple areas of dark blue (high correlation)
 and dark red (high inverse correlation). Therefore, we know that a
 multidimensional analysis makes sense for these groups.
 
-Next we are running the mda. Essentially, we are getting mean scores for
+## Running the MDA
+
+Next we are running the MDA. Essentially, we are getting mean scores for
 the significant feature loadings within each dimension (\>.35).
 
 ``` r
@@ -573,18 +576,18 @@ being tagged as adverbs so frequently in the SB files?
 ## Linear Mixed Effect Model
 
 A good next step in the analysis is to determine whether these groupings
-are significantly different along their dimensions. To do so, lme4 can
-be used.
+are significantly different along their dimensions. In other words, how
+well do the dimensions and their features predict a given group.
 
 ## Considering Relevant Features
 
 Assuming Dimension one is more fitting for dramaticity, relevant
-features that may have to do with Dramaticity based on these results:
+features that may have to do with dramaticity based on these results:
 
-High presense of: -mean word length, prepositions, other nouns,
+High presence of: -mean word length, prepositions, other nouns,
 nominalizations
 
-Low presense of: -adverbs, pronoun it, emphatics, present tense, proverb
+Low presence of: -adverbs, pronoun it, emphatics, present tense, proverb
 do
 
 Samples of the text:

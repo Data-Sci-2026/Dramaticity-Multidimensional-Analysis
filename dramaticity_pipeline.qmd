@@ -32,7 +32,7 @@ library(pseudobibeR)
 
 This pipeline describes the process of completing the MDA. See the [Santa Barbara Pipeline](santa_barbara_pipeline.md) and the [Scraps from the Loft Pipeline](scraps_from_loft_pipeline.md) for information on how the component data frames were assembled and where the data came from. 
 
-This document is used to describe how the individual data frames were combined, the shape of the resulting data frame, and the steps of the analysis. Finally, it will brielfy go over the results. If more details are needed to explain the steps of the MDA, see the [MDA document](mda.md). Final results and exploration of the analysis is documented in the [Dramaticity Analysis](final_report.md) document. 
+This document is used to describe how the individual data frames were combined, the shape of the resulting data frame, and the steps of the analysis. Finally, it will briefly go over the results. If more details are needed to explain the steps of the MDA, see the [MDA document](mda.md). Final results and exploration of the analysis is documented in the [Dramaticity Analysis](final_report.md) document. 
 
 ## Creating all_transcripts DF
 
@@ -195,7 +195,7 @@ The 'elbow' is a term used to describe the cut off point where the features bein
 
 In this case, we have decided to use the AF (accelerated factor) value to determine the elbow. This is a mathematical measure of where the line first begins to curve. Since there are two points above that, we should include two factors. Note that there is no easy way to determine the elbow or how many dimensions to include. If it is found that more dimensions might better suit an understanding of the data, re-analysis should be done.
 
-In order to be sure that an mda is worth running, we want to see that there is high correlation and inverse correlation among textual features. While this step is expected for textual features, it is still nice to run to be sure.
+In order to be sure that an MDA is worth running, we want to see that there is high correlation and inverse correlation among textual features. While this step is expected for textual features, it is still nice to run to be sure.
 
 ```{r}
 cor_m <- cor(d[,-1], method = "pearson")
@@ -204,7 +204,9 @@ corrplot(cor_m, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45,
 ```
 As we can see, there are multiple areas of dark blue (high correlation) and dark red (high inverse correlation). Therefore, we know that a multidimensional analysis makes sense for these groups. 
 
-Next we are running the mda. Essentially, we are getting mean scores for the significant feature loadings within each dimension (>.35).
+## Running the MDA
+
+Next we are running the MDA. Essentially, we are getting mean scores for the significant feature loadings within each dimension (>.35).
 
 ```{r}
 #now for the actual mda, factors is set equal to 2 because of the screeplot results
@@ -260,17 +262,17 @@ It will be important to sample some of the tags for these documents to better un
 
 ## Linear Mixed Effect Model
 
-A good next step in the analysis is to determine whether these groupings are significantly different along their dimensions. To do so, lme4 can be used. 
+A good next step in the analysis is to determine whether these groupings are significantly different along their dimensions. In other words, how well do the dimensions and their features predict a given group. 
 
 
 ## Considering Relevant Features
 
-Assuming Dimension one is more fitting for dramaticity, relevant features that may have to do with Dramaticity based on these results:
+Assuming Dimension one is more fitting for dramaticity, relevant features that may have to do with dramaticity based on these results:
 
-High presense of:
+High presence of:
 -mean word length, prepositions, other nouns, nominalizations
 
-Low presense of:
+Low presence of:
 -adverbs, pronoun it, emphatics, present tense, proverb do
 
 Samples of the text:
