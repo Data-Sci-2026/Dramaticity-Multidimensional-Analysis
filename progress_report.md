@@ -105,6 +105,10 @@ Generally speaking, the first dimension seems to represent the "dramatic" forms 
 However, it will be important to compare some specific documents and features to confirm this.
 Dimension two seems to be a better fit for the more practical differences between all TV shows and natural discourse such as higher specificity and less redundancy in TV show dialogue.
 
+### Data
+
+Data is unchanged except that the files have had null characters removed and a genre_df reference has been added for the genre of each show. 
+
 ### Next Steps
 
 Additionally, while I am not at the point where I have anything concrete, I did start an analysis scratchpad where I've begun examining features individually and starting the process for extracting pieces of parsed text. 
