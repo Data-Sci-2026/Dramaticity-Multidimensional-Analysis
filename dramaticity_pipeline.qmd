@@ -20,6 +20,7 @@ Additionally, an installation of python (3.10+). Once these are installed, every
 ```{r}
 library(tidyverse)
 library(corrplot)
+library(lme4)
 library(mda.biber)
 library(spacyr)
 library(quanteda)
@@ -152,7 +153,7 @@ As can be seen in the features data structure, have feature loadings for each te
 
 Once read in, the process described [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html) is used to run our first attempt at the MDA. 
 
-Note that the documents are being renamed below such that each individual file is represented by it's category and no other information. For instance, each comedy TV show will only be known as comedy. 
+Note that the documents are being renamed below such that each individual file is represented by it's category and no other information. For instance, each comedy TV show will only be known as comedy. This is necessary since we are comparing the groups as a whole.
 
 ```{r}
 #| output: false
@@ -171,57 +172,92 @@ d <- features |>
 
 This changes the labels of the id column so that our groups are formed, turns them into factors, and removes any columns with 0 instances. 
 
+## Determining Ideal Number of Factors
+
+The next step in the analysis is to decide on how many factors should be formed from the factor loadings. See the [MDA](mda.md) document for more details.
+
 ```{r}
 screeplot_mda(d)
 ```
-A screeplot is used to determine the dimensions we want to keep in our analysis. The 'elbow' is determined by AF. Anything at or below the elbow is considered 'scree' and we do not want to include that in our analysis. In this case, we should include two factors because their are two points above the AF. 
+A screeplot displays 'eigenvalues'. Simply put, it groups feature weights based on their impact on the data. Large feature loadings will therefore be grouped together, medium feature loadings grouped together, and so on. 
+
+The 'elbow' is essentially the cut off point where the features being grouped are not particularly impactful in terms of their predictive power. Visually, it is where the line becomes less steep. Anything at or below the elbow is considered 'scree'. In this case, based on the AF value, we can roughly mark that as the elbow. Since there are two points above that, we should include two factors 
 
 ```{r}
 cor_m <- cor(d[,-1], method = "pearson")
 
 corrplot(cor_m, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45, diag = F, tl.cex = 0.5)
 ```
-This plot is a representation of correlation between features. Blue indicates positive correlation along and red indicates negative correlation. We can see that a number of these features are correlated, so an MDA analysis makes sense. 
+This plot is a representation of correlation between features. Blue indicates positive correlation along and red indicates negative correlation. So, we can see that a number of these features are correlated, so an MDA analysis makes sense. 
+
+Here we are running the mda. Essentially, we are getting mean scores for the significan feature loadings within each dimension. 
 
 ```{r}
 #now for the actual mda, factors is set equal to 2 because of the screeplot results
 m <- mda_loadings(d, n_factors = 2)
 ```
 
+And below we can see these mean values. 
+
 ```{r}
-attributes(m)$group_means
+dimension_scores <- attributes(m)$group_means
+
+dimension_scores
+```
+
+Immediately, we can see a substantial difference between Factor 1 and Factor 2. While Drama scores quite distinctly from the other two groups in Factor 1, Natural language is quite different along Factor 2. A deeper analysis of the differences between these two factors will likely lead to a better understanding of where dramaticity comes into play. 
+
+
+```{r}
+#values arranged in descending order for factor 1
+attributes(m)$loadings |> arrange(Factor1)
 ```
 
 ```{r}
 #values arranged in descending order for factor 1
-attributes(m)$loadings %>% arrange(-Factor1)
+attributes(m)$loadings |> arrange(-Factor2)
 ```
 
-## Creating Dimensions
+If we consider Drama TV shows to generally have language that is more exaggerated compared to comedy TV shows and real life, than we could posit that dimension 1 is more likely to reflect the dimension of dramaticity. It is likely that dimension 2, then, more reflects differences between natural discourse and tv show discourse that are shared between the drama and comedy genre. A further analysis of the specific features involved will likely support this.
 
-From these values, we can now create our dimensions. We do this by compiling the relevant factors for each dimension (>.35 0r >-.35) 
+Given this hypothysis, for now we will focus on dimension 1.
+
+```{r}
+#mapping the mean dimension scores centered around 0
+stickplot_mda(m, n_factor = 1)
+```
+This graph is a useful tool for understanding what the dimension analysis is actually saying. Since scores are averaged around 0, it is very easy to see how the different groups are on opposite ends of the spectrum for this dimension. 
 
 
 ```{r}
-stickplot_mda(m, n_factor = 2)
-```
-Not a very exciting graph with only a binary comparison!
-
-```{r}
-heatmap_mda(m, n_factor = 2)
+heatmap_mda(m, n_factor = 1)
 ```
 
-This is a bit more telling. Interesting that emphatics appear to predict natural discourse here when compared to TV show dialogue. I hypothesized it might be the opposite. 
+By including the relevant features, things become even clearer. One important reminder is that highly positive and highly negative features (such as mean word length and adverbs) are in a trade off relationship. Among these groups, as the mean length of a word increases we would expect fewer adverbs to be present and vice versa. 
 
-```{r}
-boxplot_mda(m, n_factor = 2)
-```
+Two immediate thoughts based on this graph:
 
-Last graph. Similar to the last one, this is just a measure of how different these document types are. Worth noting that the natural discourses varied a **lot** more and had several outliers. 
+- it is suprising that emphatics are less likely to occur in drama TV show transcripts
 
-## Running MDA with Comedy-Drama Distinction
+- it is surprising that adverbs are also so unlikely in drama TV show transcripts
+
+It will be important to sample some of the tags for these documents to better understand what is causing these rates. What sorts of words are being tagged as adverbs so frequently in the SB files?
+
+## Linear Mixed Effect Model
+
+A good next step in the analysis is to determine whether these groupings are significantly different along their dimensions. To do so, lme4 can be used. 
 
 ## Considering Relevant Features
+
+Assuming Dimension one is more fitting for dramaticity, relevant features that may have to do with Dramaticity based on these results:
+
+High presense of:
+-mean word length, prepositions, other nouns, nominalizations
+
+Low presense of:
+-adverbs, pronoun it, emphatics, present tense, proverb do
+
+
 
 
 ```{r}
