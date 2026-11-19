@@ -2,23 +2,19 @@
 Zach Shultz
 2026-11-06
 
-## EXISTING
+## EXISTING piepline
 
 This pipeline was used for progress report 2, it has been updated to
 reflect the final analysis
 
 ## Prereqs
 
-In addition to tidyverse packages, `corrplot`, `mda.biber`, and `polars`
-will all be needed. Polars is a special, relatively new type of data
-frame often used in python. This package is only necessary for
-transforming data frames so that python can use them properly.
+In addition to tidyverse packages, `corrplot`, `mda.biber`, `spacyr`,
+`udpipe`, and `quanteda` will all need to be installed.
 
-Additionally, an installation of python (3.10+), pandas, NumPy, and
-spaCy is required to complete the process described below. Once these
-are installed, everything can be completed within R as described below.
-
-[Information on python side](https://browndw.github.io/pybiber/)
+Additionally, an installation of python (3.10+) is required to utilize
+spaCy R. Once these are installed, everything can be completed within R
+as described below.
 
 [Information on spaCy](https://spacy.io/usage)
 
@@ -44,9 +40,47 @@ library(corrplot)
     corrplot 0.95 loaded
 
 ``` r
-library(mda.biber)
-library(polars)
+library(lme4)
 ```
+
+    Loading required package: Matrix
+
+    Attaching package: 'Matrix'
+
+    The following objects are masked from 'package:tidyr':
+
+        expand, pack, unpack
+
+``` r
+library(mda.biber)
+library(spacyr)
+```
+
+    Warning: package 'spacyr' was built under R version 4.6.2
+
+``` r
+library(quanteda)
+```
+
+    Warning: package 'quanteda' was built under R version 4.6.2
+
+    Package version: 4.5.1
+    Unicode version: 15.1
+    ICU version: 74.1
+    Parallel computing: 8 of 8 threads used.
+    See https://quanteda.io for tutorials and examples.
+
+``` r
+library(udpipe)
+```
+
+    Warning: package 'udpipe' was built under R version 4.6.2
+
+``` r
+library(pseudobibeR)
+```
+
+    Warning: package 'pseudobibeR' was built under R version 4.6.2
 
 ## Intro
 
@@ -57,15 +91,14 @@ the component data frames were assembled and where the data came from.
 
 This document is used to describe how the individual data frames were
 combined, the shape of the resulting data frame, and the steps of the
-analysis. If more details are needed to explain the steps of the MDA,
-see the [MDA document](mda.md). Final results and exploration of the
-analysis is documented in the [Dramaticity Analysis](final_report.md)
-document.
+analysis. Finally, it will brielfy go over the results. If more details
+are needed to explain the steps of the MDA, see the [MDA
+document](mda.md). Final results and exploration of the analysis is
+documented in the [Dramaticity Analysis](final_report.md) document.
 
-## Creating all_transcripts df
+## Creating all_transcripts DF
 
-First, we load in the tv_show_transcripts pipeline as a csv (saved to
-avoid repeated webscraping).
+First, we load in the `tv_show_transcripts` pipeline as a csv.
 
 ``` r
 tv_show_df <- read.csv("private/tv_show_transcripts.csv")
@@ -87,7 +120,7 @@ Finally, we combine the two data frames.
 all_transcripts <- rbind(sb_files, tv_show_df)
 
 all_transcripts <- all_transcripts|>
-  #renaming the second column to text as that is what is expected for the pybiber pipeline below
+  #renaming the first column to id and the second column to text as that is what is expected for the pseudobiber pipeline below
   rename(text = "clean_words",
          doc_id = "id")
 ```
@@ -98,12 +131,12 @@ Now we save this file to our private folder!
 write_csv(all_transcripts, "private/all_transcripts.csv")
 ```
 
-## Summary all_transcripts
+## Summary `all_transcripts`
 
 Below is some summary information about what is included in
 all_transcripts:
 
-Number of rows and columns in our df
+Number of rows and columns in our df and breakdown of genre
 
 ``` r
 nrow(all_transcripts)
@@ -117,6 +150,20 @@ ncol(all_transcripts)
 
     [1] 2
 
+``` r
+all_transcripts |>
+  mutate(doc_id = case_when(str_detect(doc_id, "trn") ~ "natural", 
+                        str_detect(doc_id, "comedy") ~ "comedy", 
+                        str_detect(doc_id, "drama") ~ "drama")) |>
+  mutate(nwords = (str_count(text, "\\w+"))) |>
+  count(doc_id)
+```
+
+       doc_id  n
+    1  comedy 28
+    2   drama 32
+    3 natural 60
+
 Approximate number of words in our df:
 
 ``` r
@@ -126,13 +173,13 @@ all_transcripts |>
 ```
 
       sum(nwords)
-    1      538726
+    1      538942
 
 Approximate number of words by category:
 
 ``` r
 all_transcripts |>
-  mutate(id = case_when(str_detect(doc_id, "trn") ~ "natural", 
+  mutate(doc_id = case_when(str_detect(doc_id, "trn") ~ "natural", 
                         str_detect(doc_id, "comedy") ~ "comedy", 
                         str_detect(doc_id, "drama") ~ "drama")) |>
   mutate(nwords = (str_count(text, "\\w+"))) |>
@@ -140,220 +187,146 @@ all_transcripts |>
   summarize(sum(nwords))
 ```
 
-    # A tibble: 120 × 2
-       doc_id                     `sum(nwords)`
-       <chr>                              <int>
-     1 9_1_1_drama                         5246
-     2 a_man_on_the_inside_comedy          4111
-     3 abbott_elementary_comedy            3390
-     4 adults_comedy                       3314
-     5 anna_pigeon_drama                   4850
-     6 bad_monkey_drama                    7810
-     7 beauty_in_black_drama               4678
-     8 best_medicine_2026_comedy           6185
-     9 boots_comedy                        3322
-    10 breaking_bad_drama                  3353
-    # ℹ 110 more rows
+    # A tibble: 3 × 2
+      doc_id  `sum(nwords)`
+      <chr>           <int>
+    1 comedy         116947
+    2 drama          158660
+    3 natural        263335
 
 ## Tagging all_transcripts and Getting Factor Loadings
 
-Tagging the transcripts required a python package. This process was
-first completed in an ipynb file, but it can also be run in cells within
-R as is show below.
+In order to parse the data, it is necessary to use spaCy to tag all of
+the words in the document. Then, an R package called `pseudobibeR` can
+be used to get the 67 linguistic features created by Biber. For more
+details on the process, see
+[here](https://github.com/browndw/pseudobibeR). Note that this package
+and the following were created by David Brown, a linguist at CMU!
 
-Here, spacy is being downloaded as this is the word parser we are using.
-Pybiber is a python package that runs word parsing and compiles a count
-of the (67 linguistic features developed by Biber)\[mda.md\]. Lastly,
-polars is a type of data frame that pybiber utilizes.
+First, we can ensure that all texts are normalized and in a corpus
+format. A glimpse of the corpus format can be seen below.
 
-``` python
-#spacy word parsing
-import spacy
-#pybiber
-import pybiber as pb
-#polars data frames
-import polars as pl
+``` r
+# 1. Read the texts and normalize typographic quotes (’ -> ')
+all_transcripts$clean_words <- utf8::utf8_normalize(all_transcripts$clean_words, map_quote = TRUE)
+corp <- corpus(all_transcripts)
+
+corp
 ```
 
-``` python
-#loading the English word parsing from spacy
-#note that Named Entity Recognition (ner) has been disabled as it is not required for Biber features
-nlp = spacy.load("en_core_web_sm", disable=["ner"])
+Next, we will download an English parsing model through `udpipe`. This
+is essentially a wrapper that allows R users to run tagging and parsing.
+
+``` r
+# 2. Parse with udpipe (the model is downloaded once)
+model <- udpipe_download_model(language = "english")
 ```
 
-Below, we are reading in the csv we have created in R to python as a
-polar.
+    Downloading udpipe model from https://raw.githubusercontent.com/jwijffels/udpipe.models.ud.2.5/master/inst/udpipe-ud-2.5-191206/english-ewt-ud-2.5-191206.udpipe to C:/Users/justz/Dramaticity-Multidimensional-Analysis/english-ewt-ud-2.5-191206.udpipe
 
-``` python
-#loading our df as a polar (pl)
-all_transcripts = pl.read_csv("private/all_transcripts.csv")
+     - This model has been trained on version 2.5 of data from https://universaldependencies.org
+
+     - The model is distributed under the CC-BY-SA-NC license: https://creativecommons.org/licenses/by-nc-sa/4.0
+
+     - Visit https://github.com/jwijffels/udpipe.models.ud.2.5 for model license details.
+
+     - For a list of all models and their licenses (most models you can download with this package have either a CC-BY-SA or a CC-BY-SA-NC license) read the documentation at ?udpipe_download_model. For building your own models: visit the documentation by typing vignette('udpipe-train', package = 'udpipe')
+
+    Downloading finished, model stored at 'C:/Users/justz/Dramaticity-Multidimensional-Analysis/english-ewt-ud-2.5-191206.udpipe'
+
+Once the above code has been run once, only the below code will be
+necessary to load in the model as below.
+
+``` r
+ud_model <- udpipe_load_model(model$file_model)
 ```
 
-``` python
-#checking to see if we got the right df
-all_transcripts.head()
+And parse each character in the corpus. This process takes some time,
+around ten minutes.
+
+``` r
+parsed <- udpipe_annotate(ud_model, x = as.character(corp), doc_id = docnames(corp), trace = 100)
 ```
 
-    shape: (5, 2)
-    ┌─────────┬─────────────────────────────────┐
-    │ doc_id  ┆ text                            │
-    │ ---     ┆ ---                             │
-    │ str     ┆ str                             │
-    ╞═════════╪═════════════════════════════════╡
-    │ trn_001 ┆ So you don't need to go borrow… │
-    │ trn_002 ┆ How can you teach a three-year… │
-    │ trn_003 ┆ Okay. Do you have a particular… │
-    │ trn_004 ┆ Juice anybody ? I like it, for… │
-    │ trn_005 ┆ But, but to try and and talk m… │
-    └─────────┴─────────────────────────────────┘
+    2026-11-19 10:57:19.84044 Annotating text fragment 1/120
+    2026-11-19 11:05:02.148775 Annotating text fragment 101/120
 
-Above is what the polar document roughly looks like! We have
-successfully tranformed our df into a polar.
+Finally, we can get the feature weights which will be used in the second
+half of functions. This function also takes some time to run, about five
+minutes.
 
-Next, we will tag each word in each corpus with various information. As
-a reminder, `nlp` below is simply the English word parser from spacy.
-
-``` python
-#creating the processor from pybiber
-processor = pb.CorpusProcessor()
-#running the processor on our new data frame with the process_corpus function from pybiber
-df_dramaticity = processor.process_corpus(all_transcripts, nlp_model=nlp)
-```
-
-    Performance: Corpus processing completed in 87.40s
-
-``` python
-df_dramaticity.tail()
-```
-
-    shape: (5, 9)
-    ┌───────────────┬─────────────┬──────────┬────────┬────────┬───────┬─────┬───────────────┬─────────┐
-    │ doc_id        ┆ sentence_id ┆ token_id ┆ token  ┆ lemma  ┆ pos   ┆ tag ┆ head_token_id ┆ dep_rel │
-    │ ---           ┆ ---         ┆ ---      ┆ ---    ┆ ---    ┆ ---   ┆ --- ┆ ---           ┆ ---     │
-    │ str           ┆ u32         ┆ i64      ┆ str    ┆ str    ┆ str   ┆ str ┆ i64           ┆ str     │
-    ╞═══════════════╪═════════════╪══════════╪════════╪════════╪═══════╪═════╪═══════════════╪═════════╡
-    │ young_sheldon ┆ 386         ┆ 3032     ┆ listen ┆ listen ┆ VERB  ┆ VB  ┆ 3030          ┆ xcomp   │
-    │ _comedy       ┆             ┆          ┆        ┆        ┆       ┆     ┆               ┆         │
-    │ young_sheldon ┆ 386         ┆ 3033     ┆ to     ┆ to     ┆ PART  ┆ TO  ┆ 3034          ┆ aux     │
-    │ _comedy       ┆             ┆          ┆        ┆        ┆       ┆     ┆               ┆         │
-    │ young_sheldon ┆ 386         ┆ 3034     ┆ show   ┆ show   ┆ VERB  ┆ VB  ┆ 3032          ┆ advcl   │
-    │ _comedy       ┆             ┆          ┆        ┆        ┆       ┆     ┆               ┆         │
-    │ young_sheldon ┆ 386         ┆ 3035     ┆ tunes  ┆ tune   ┆ NOUN  ┆ NNS ┆ 3034          ┆ dobj    │
-    │ _comedy       ┆             ┆          ┆        ┆        ┆       ┆     ┆               ┆         │
-    │ young_sheldon ┆ 386         ┆ 3036     ┆ .      ┆ .      ┆ PUNCT ┆ .   ┆ 3030          ┆ punct   │
-    │ _comedy       ┆             ┆          ┆        ┆        ┆       ┆     ┆               ┆         │
-    └───────────────┴─────────────┴──────────┴────────┴────────┴───────┴─────┴───────────────┴─────────┘
-
-Above, we can that it has taken each word and begun to tag it with the
-relevant features. This is still essentially spaCy parsing.
-
-Below is what the pybiber package really adds. The `pb.biber` function
-below essentially counts the parsed text from above and assembles a
-count of the 67 linguistic features form Biber.
-
-``` python
-#creating a new df that has a count of the features for each document
-df_biber_dramaticity = pb.biber(df_dramaticity)
-```
-
-``` python
-print(f"Matrix dimensions: {df_biber_dramaticity.shape}")
-```
-
-    Matrix dimensions: (120, 68)
-
-``` python
-df_biber_dramaticity.head()
-```
-
-    shape: (5, 68)
-    ┌─────────┬─────────┬─────────┬─────────┬─────────┬───┬────────┬────────┬────────┬────────┬────────┐
-    │ doc_id  ┆ f_01_pa ┆ f_02_pe ┆ f_03_pr ┆ f_04_pl ┆ … ┆ f_63_s ┆ f_64_p ┆ f_65_c ┆ f_66_n ┆ f_67_n │
-    │ ---     ┆ st_tens ┆ rfect_a ┆ esent_t ┆ ace_adv ┆   ┆ plit_a ┆ hrasal ┆ lausal ┆ eg_syn ┆ eg_ana │
-    │ str     ┆ e       ┆ spect   ┆ ense    ┆ erbials ┆   ┆ uxilia ┆ _coord ┆ _coord ┆ thetic ┆ lytic  │
-    │         ┆ ---     ┆ ---     ┆ ---     ┆ ---     ┆   ┆ ry     ┆ inatio ┆ inatio ┆ ---    ┆ ---    │
-    │         ┆ f64     ┆ f64     ┆ f64     ┆ f64     ┆   ┆ ---    ┆ n      ┆ n      ┆ f64    ┆ f64    │
-    │         ┆         ┆         ┆         ┆         ┆   ┆ f64    ┆ ---    ┆ ---    ┆        ┆        │
-    │         ┆         ┆         ┆         ┆         ┆   ┆        ┆ f64    ┆ f64    ┆        ┆        │
-    ╞═════════╪═════════╪═════════╪═════════╪═════════╪═══╪════════╪════════╪════════╪════════╪════════╡
-    │ 9_1_1_d ┆ 28.6201 ┆ 3.41167 ┆ 85.8605 ┆ 3.79075 ┆ … ┆ 2.6535 ┆ 1.8953 ┆ 8.5291 ┆ 1.7058 ┆ 16.679 │
-    │ rama    ┆ 67      ┆ 6       ┆         ┆ 1       ┆   ┆ 25     ┆ 75     ┆ 89     ┆ 38     ┆ 303    │
-    │ a_man_o ┆ 35.1429 ┆ 4.60494 ┆ 86.7668 ┆ 1.21182 ┆ … ┆ 2.4236 ┆ 0.9694 ┆ 11.391 ┆ 1.6965 ┆ 15.026 │
-    │ n_the_i ┆ 96      ┆ 4       ┆ 44      ┆ 7       ┆   ┆ 55     ┆ 62     ┆ 178    ┆ 58     ┆ 66     │
-    │ nside_c ┆         ┆         ┆         ┆         ┆   ┆        ┆        ┆        ┆        ┆        │
-    │ omedy   ┆         ┆         ┆         ┆         ┆   ┆        ┆        ┆        ┆        ┆        │
-    │ abbott_ ┆ 27.6796 ┆ 5.88928 ┆ 97.4676 ┆ 1.17785 ┆ … ┆ 4.4169 ┆ 1.4723 ┆ 13.839 ┆ 0.5889 ┆ 16.784 │
-    │ element ┆ 23      ┆ 2       ┆ 09      ┆ 6       ┆   ┆ 61     ┆ 2      ┆ 812    ┆ 28     ┆ 452    │
-    │ ary_com ┆         ┆         ┆         ┆         ┆   ┆        ┆        ┆        ┆        ┆        │
-    │ edy     ┆         ┆         ┆         ┆         ┆   ┆        ┆        ┆        ┆        ┆        │
-    │ adults_ ┆ 27.9111 ┆ 4.20168 ┆ 103.841 ┆ 2.10084 ┆ … ┆ 3.6014 ┆ 0.6002 ┆ 9.6038 ┆ 1.5006 ┆ 19.807 │
-    │ comedy  ┆ 64      ┆ 1       ┆ 537     ┆         ┆   ┆ 41     ┆ 4      ┆ 42     ┆        ┆ 923    │
-    │ anna_pi ┆ 39.2277 ┆ 5.75066 ┆ 92.4214 ┆ 3.28609 ┆ … ┆ 3.6968 ┆ 1.0269 ┆ 11.706 ┆ 1.0269 ┆ 18.689 │
-    │ geon_dr ┆ 68      ┆ 7       ┆ 42      ┆ 6       ┆   ┆ 58     ┆ 05     ┆ 716    ┆ 05     ┆ 669    │
-    │ ama     ┆         ┆         ┆         ┆         ┆   ┆        ┆        ┆        ┆        ┆        │
-    └─────────┴─────────┴─────────┴─────────┴─────────┴───┴────────┴────────┴────────┴────────┴────────┘
-
-Note that features have been normalized so that texts of different
-lengths can be compared:
-
-[“Most features: Normalized per 1,000 tokens, f_43_type_token:
-Type-token ratio (0-1 scale), f_44_mean_word_length: Average characters
-per word”](https://browndw.github.io/pybiber/get-started.html)
-
-``` python
-#write out the df as a csv document back into the private folder
-df_biber_dramaticity.write_csv("private/df_biber_dramaticity")
+``` r
+# 3. Count the features: one row per document
+features <- biber(parsed)
 ```
 
 ## Getting Dimension Scores
 
-Now, we can move that file back into R. As can be seen at the end of the
-notebook, we wrote out a new csv file that contains the feature loadings
-for each text These can now be run through the process to get the 67
-linguistic features.
-
-``` r
-#reads in the csv file created in python
-df_biber_dramaticity <- read.csv("private/df_biber_dramaticity")
-```
+As can be seen in the `features` data structure, have feature loadings
+for each text. These can now be run through another series of functions
+to get the overall scores for the 67 linguistic features for each text.
 
 Once read in, the process described
 [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html)
-is used to run our first attempt at the MDA. Note that this was created
-by David Brown, a linguist at CMU!
+is used to run our first attempt at the MDA. This is the second half of
+David Brown’s pipeline!
 
 Note that the documents are being renamed below such that each
 individual file is represented by it’s category and no other
 information. For instance, each comedy TV show will only be known as
-comedy.
+comedy. This is necessary since we are comparing the groups as a whole.
 
 ``` r
 #ok so first we are assigning our data set to the variable d
-d <- df_biber_dramaticity %>%
+d <- features |>
   #then, we are modifying a column called doc_id to rename columns that contain either "comedy", "drama" or "trn" with "comedy", "drama", and "natural". 
   mutate(doc_id = case_when(str_detect(doc_id, "comedy") ~ "comedy",
                             str_detect(doc_id, "drama") ~ "drama",
-                            str_detect(doc_id, "trn") ~ "natural")) %>%
+                            str_detect(doc_id, "trn") ~ "natural")) |>
   #then we are modifying our new column so the strings are factors
-  mutate(doc_id = as.factor(doc_id)) %>%
+  mutate(doc_id = as.factor(doc_id)) |>
   #removes the columns with values = 0
   select(where(~ any(. != 0)))
 ```
 
 This changes the labels of the id column so that our groups are formed,
-turns them into factors, and removes any columns with 0 instances.
+turns them into factors, and removes any columns with 0 instances. Any
+features not observed should not be there to run a proper mda as below.
+
+## Determining Ideal Number of Factors
+
+The next step in the analysis is to decide on how many factors should be
+formed from the factor loadings. See the [MDA](mda.md) document for more
+details on this important decision.
 
 ``` r
 screeplot_mda(d)
 ```
 
-![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-19-1.png)
+![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-15-1.png)
 
-A screeplot is used to determine the dimensions we want to keep in our
-analysis. The ‘elbow’ is determined by AF. Anything at or below the
-elbow is considered ‘scree’ and we do not want to include that in our
-analysis. In this case, we should include two factors because their are
-two points above the AF.
+A screeplot displays ‘eigenvalues’. Simply put, it groups feature
+weights based on their impact on the data. Large feature loadings will
+therefore be grouped together, medium feature loadings grouped together,
+and so on.
+
+The ‘elbow’ is a term used to describe the cut off point where the
+features being grouped are not particularly impactful in terms of their
+predictive power. Visually, it is where the line becomes less steep.
+Anything at or below the elbow is considered ‘scree’.
+
+In this case, we have decided to use the AF (accelerated factor) value
+to determine the elbow. This is a mathematical measure of where the line
+first begins to curve. Since there are two points above that, we should
+include two factors. Note that there is no easy way to determine the
+elbow or how many dimensions to include. If it is found that more
+dimensions might better suit an understanding of the data, re-analysis
+should be done.
+
+In order to be sure that an mda is worth running, we want to see that
+there is high correlation and inverse correlation among textual
+features. While this step is expected for textual features, it is still
+nice to run to be sure.
 
 ``` r
 cor_m <- cor(d[,-1], method = "pearson")
@@ -361,137 +334,260 @@ cor_m <- cor(d[,-1], method = "pearson")
 corrplot(cor_m, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45, diag = F, tl.cex = 0.5)
 ```
 
-![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-20-1.png)
+![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-16-1.png)
 
-This plot is a representation of correlation between features. Blue
-indicates positive correlation along and red indicates negative
-correlation. We can see that a number of these features are correlated,
-so an MDA analysis makes sense.
+As we can see, there are multiple areas of dark blue (high correlation)
+and dark red (high inverse correlation). Therefore, we know that a
+multidimensional analysis makes sense for these groups.
+
+Next we are running the mda. Essentially, we are getting mean scores for
+the significant feature loadings within each dimension (\>.35).
 
 ``` r
 #now for the actual mda, factors is set equal to 2 because of the screeplot results
 m <- mda_loadings(d, n_factors = 2)
 ```
 
+And below we can see these mean values:
+
 ``` r
-attributes(m)$group_means
+dimension_scores <- attributes(m)$group_means
+
+dimension_scores
 ```
 
-        group    Factor1   Factor2
-    1  comedy -0.1310452  8.904092
-    2   drama  3.2968505  9.107540
-    3 natural -1.6971658 -9.012598
+        group    Factor1    Factor2
+    1  comedy -0.4063865  -9.641276
+    2   drama  3.3317098 -10.431191
+    3 natural -1.5872649  10.062564
+
+Immediately, we can see a substantial difference between Factor 1 and
+Factor 2. While Drama scores quite distinctly from the other two groups
+in Factor 1, Natural language is quite different along Factor 2. A
+deeper analysis of the differences between these two factors will likely
+lead to a better understanding of where dramaticity comes into play.
+These differences can be even better visualized in graphic form.
+
+Below are the highest correlation features by factor.
 
 ``` r
 #values arranged in descending order for factor 1
-attributes(m)$loadings %>% arrange(-Factor1)
+attributes(m)$loadings |> arrange(-Factor1)
 ```
 
-                                      Factor1       Factor2
-    f_44_mean_word_length         0.947029968  0.1614759798
-    f_16_other_nouns              0.802337549  0.4821839105
-    f_39_prepositions             0.672637182 -0.3324764024
-    f_14_nominalizations          0.635930433 -0.0675856113
-    f_43_type_token               0.545446931  0.8349914572
-    f_40_adj_attr                 0.521984516  0.0559025913
-    f_17_agentless_passives       0.506923224 -0.1306728132
-    f_15_gerunds                  0.465063357 -0.0890153235
-    f_57_verb_suasive             0.436280577  0.1165418567
-    f_18_by_passives              0.400383967 -0.0816136811
-    f_28_present_participle_whiz  0.390389260  0.1191362365
-    f_24_infinitives              0.384409700  0.2782185099
-    f_64_phrasal_coordination     0.339438817 -0.1417959278
-    f_31_wh_subj                  0.300639350 -0.0656767400
-    f_27_past_participle_whiz     0.295820490 -0.0356840412
-    f_58_verb_seem                0.289087692  0.0005591014
-    f_02_perfect_aspect           0.284041642 -0.0012683244
-    f_33_pied_piping              0.282537969 -0.0848695028
-    f_48_amplifiers               0.260380835 -0.1727451770
-    f_21_that_verb_comp           0.259202084 -0.1088919959
-    f_51_demonstratives           0.216416336 -0.2845504099
-    f_46_downtoners               0.215803960  0.1145631869
-    f_30_that_obj                 0.203284981 -0.4041010682
-    f_45_conjuncts                0.201164008 -0.0689037860
-    f_34_sentence_relatives       0.195012340 -0.2770451067
-    f_66_neg_synthetic            0.169081320  0.5464174271
-    f_13_wh_question              0.128454242  0.6383615808
-    f_29_that_subj                0.112831367 -0.4004347469
-    f_25_present_participle       0.101547180 -0.3446392097
-    f_36_though                   0.095222863 -0.0934556791
-    f_05_time_adverbials          0.094489138  0.2421127203
-    f_22_that_adj_comp            0.083985959 -0.0001587179
-    f_11_indefinite_pronouns      0.065936541  0.4108159274
-    f_32_wh_obj                   0.058344856 -0.0396800938
-    f_35_because                  0.040342280 -0.4561336031
-    f_04_place_adverbials         0.036745359 -0.1403274576
-    f_38_other_adv_sub            0.004728748 -0.3192987447
-    f_26_past_participle         -0.002172071 -0.1910985150
-    f_55_verb_public             -0.022034507 -0.3860743504
-    f_20_existential_there       -0.030834687 -0.3479457911
-    f_52_modal_possibility       -0.061955786  0.4017925355
-    f_37_if                      -0.072248320 -0.1019397370
-    f_53_modal_necessity         -0.074992469  0.3594390441
-    f_19_be_main_verb            -0.130810692  0.6567576027
-    f_41_adj_pred                -0.134270117  0.3133075556
-    f_54_modal_predictive        -0.142023392 -0.0832874135
-    f_01_past_tense              -0.152861229 -0.5518688533
-    f_07_second_person_pronouns  -0.157915408  0.7519147774
-    f_62_split_infinitive        -0.158588054  0.0652977239
-    f_08_third_person_pronouns   -0.166527075 -0.5938586496
-    f_60_that_deletion           -0.187480630  0.0728037248
-    f_47_hedges                  -0.216472288 -0.1062592689
-    f_06_first_person_pronouns   -0.238037634  0.4847065996
-    f_63_split_auxiliary         -0.255305795  0.1038317372
-    f_65_clausal_coordination    -0.338855140 -0.8627515914
-    f_61_stranded_preposition    -0.344493497 -0.3528803567
-    f_67_neg_analytic            -0.351718850  0.4370736797
-    f_23_wh_clause               -0.384119001  0.1985267767
-    f_50_discourse_particles     -0.390867530 -0.2393332349
-    f_03_present_tense           -0.394374366  0.3381849116
-    f_56_verb_private            -0.477229653 -0.2237540733
-    f_12_proverb_do              -0.499715243 -0.0021616785
-    f_10_demonstrative_pronoun   -0.505938649 -0.1372157884
-    f_49_emphatics               -0.515504172 -0.0564564415
-    f_42_adverbs                 -0.552485513  0.0441813688
-    f_09_pronoun_it              -0.583422593 -0.2079839617
-    f_59_contractions            -0.603019105  0.4543705585
-
-## Creating Dimensions
-
-From these values, we can now create our dimensions. We do this by
-compiling the relevant factors for each dimension (\>.35 0r \>-.35)
+                                      Factor1      Factor2
+    f_44_mean_word_length         0.917618683 -0.360802002
+    f_39_prepositions             0.791399304  0.176947204
+    f_16_other_nouns              0.748254730 -0.400875028
+    f_14_nominalizations          0.668069450  0.026803782
+    f_17_agentless_passives       0.652140966  0.158139788
+    f_40_adj_attr                 0.535292769  0.036751431
+    f_15_gerunds                  0.456882193  0.253837040
+    f_18_by_passives              0.456834204 -0.002041751
+    f_27_past_participle_whiz     0.428333154 -0.057529408
+    f_28_present_participle_whiz  0.421854336 -0.178714748
+    f_30_that_obj                 0.406312093  0.182779904
+    f_57_verb_suasive             0.392510387 -0.126766285
+    f_43_type_token               0.373395321 -0.838171465
+    f_31_wh_subj                  0.367766821 -0.045063332
+    f_64_phrasal_coordination     0.353303743  0.055260912
+    f_24_infinitives              0.327228387 -0.412768308
+    f_45_conjuncts                0.322435739  0.234700410
+    f_33_pied_piping              0.305824834  0.020338677
+    f_58_verb_seem                0.296388502 -0.054801585
+    f_48_amplifiers               0.295017432  0.114399157
+    f_51_demonstratives           0.288850149  0.253337597
+    f_02_perfect_aspect           0.283695567  0.074398452
+    f_34_sentence_relatives       0.283148561  0.217833253
+    f_29_that_subj                0.273647844  0.291568829
+    f_46_downtoners               0.192475692 -0.170725465
+    f_25_present_participle       0.154381675  0.271978489
+    f_35_because                  0.154312612  0.318664952
+    f_21_that_verb_comp           0.144451039 -0.011941679
+    f_36_though                   0.127147886  0.037291234
+    f_26_past_participle          0.112072595  0.140841952
+    f_04_place_adverbials         0.111449825  0.118718972
+    f_22_that_adj_comp            0.097361555 -0.038181857
+    f_32_wh_obj                   0.064389971 -0.029730654
+    f_55_verb_public              0.057120722  0.342155527
+    f_66_neg_synthetic            0.019475331 -0.479669445
+    f_05_time_adverbials          0.017507458 -0.185546942
+    f_20_existential_there        0.009851697  0.337927838
+    f_13_wh_question             -0.004481128 -0.563142311
+    f_08_third_person_pronouns   -0.005091207  0.500619007
+    f_01_past_tense              -0.021035373  0.403098489
+    f_61_stranded_preposition    -0.028852035  0.498928687
+    f_37_if                      -0.047710458  0.147853883
+    f_11_indefinite_pronouns     -0.049247142 -0.428642155
+    f_38_other_adv_sub           -0.128933866  0.385413333
+    f_65_clausal_coordination    -0.132609072  0.777277681
+    f_52_modal_possibility       -0.166501222 -0.332124811
+    f_54_modal_predictive        -0.168822569  0.694750479
+    f_53_modal_necessity         -0.169149744 -0.311903312
+    f_62_split_infinitive        -0.199071203  0.085987104
+    f_60_that_deletion           -0.225973758 -0.063755179
+    f_47_hedges                  -0.226526286  0.128512201
+    f_41_adj_pred                -0.248509296 -0.023267464
+    f_63_split_auxiliary         -0.262795443  0.011070538
+    f_50_discourse_particles     -0.341846003  0.370582994
+    f_07_second_person_pronouns  -0.353892475 -0.680125719
+    f_23_wh_clause               -0.362788105 -0.239553756
+    f_06_first_person_pronouns   -0.376132258 -0.410485975
+    f_59_contractions            -0.380857719  0.974338873
+    f_19_be_main_verb            -0.395226274  0.292347414
+    f_67_neg_analytic            -0.428958862  0.874282781
+    f_10_demonstrative_pronoun   -0.433313176  0.394149240
+    f_56_verb_private            -0.451254882  0.245920545
+    f_12_proverb_do              -0.467222976  0.069600491
+    f_03_present_tense           -0.481098596 -0.182900850
+    f_49_emphatics               -0.526833942  0.108207461
+    f_09_pronoun_it              -0.540570268  0.388947622
+    f_42_adverbs                 -0.607777476  0.297992314
 
 ``` r
-stickplot_mda(m, n_factor = 2)
+#values arranged in descending order for factor 1
+#note that m contains the raw values while specifying loadings gets us the values normalized around 0
+attributes(m)$loadings |> arrange(-Factor2)
 ```
 
-![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-24-1.png)
+                                      Factor1      Factor2
+    f_59_contractions            -0.380857719  0.974338873
+    f_67_neg_analytic            -0.428958862  0.874282781
+    f_65_clausal_coordination    -0.132609072  0.777277681
+    f_54_modal_predictive        -0.168822569  0.694750479
+    f_08_third_person_pronouns   -0.005091207  0.500619007
+    f_61_stranded_preposition    -0.028852035  0.498928687
+    f_01_past_tense              -0.021035373  0.403098489
+    f_10_demonstrative_pronoun   -0.433313176  0.394149240
+    f_09_pronoun_it              -0.540570268  0.388947622
+    f_38_other_adv_sub           -0.128933866  0.385413333
+    f_50_discourse_particles     -0.341846003  0.370582994
+    f_55_verb_public              0.057120722  0.342155527
+    f_20_existential_there        0.009851697  0.337927838
+    f_35_because                  0.154312612  0.318664952
+    f_42_adverbs                 -0.607777476  0.297992314
+    f_19_be_main_verb            -0.395226274  0.292347414
+    f_29_that_subj                0.273647844  0.291568829
+    f_25_present_participle       0.154381675  0.271978489
+    f_15_gerunds                  0.456882193  0.253837040
+    f_51_demonstratives           0.288850149  0.253337597
+    f_56_verb_private            -0.451254882  0.245920545
+    f_45_conjuncts                0.322435739  0.234700410
+    f_34_sentence_relatives       0.283148561  0.217833253
+    f_30_that_obj                 0.406312093  0.182779904
+    f_39_prepositions             0.791399304  0.176947204
+    f_17_agentless_passives       0.652140966  0.158139788
+    f_37_if                      -0.047710458  0.147853883
+    f_26_past_participle          0.112072595  0.140841952
+    f_47_hedges                  -0.226526286  0.128512201
+    f_04_place_adverbials         0.111449825  0.118718972
+    f_48_amplifiers               0.295017432  0.114399157
+    f_49_emphatics               -0.526833942  0.108207461
+    f_62_split_infinitive        -0.199071203  0.085987104
+    f_02_perfect_aspect           0.283695567  0.074398452
+    f_12_proverb_do              -0.467222976  0.069600491
+    f_64_phrasal_coordination     0.353303743  0.055260912
+    f_36_though                   0.127147886  0.037291234
+    f_40_adj_attr                 0.535292769  0.036751431
+    f_14_nominalizations          0.668069450  0.026803782
+    f_33_pied_piping              0.305824834  0.020338677
+    f_63_split_auxiliary         -0.262795443  0.011070538
+    f_18_by_passives              0.456834204 -0.002041751
+    f_21_that_verb_comp           0.144451039 -0.011941679
+    f_41_adj_pred                -0.248509296 -0.023267464
+    f_32_wh_obj                   0.064389971 -0.029730654
+    f_22_that_adj_comp            0.097361555 -0.038181857
+    f_31_wh_subj                  0.367766821 -0.045063332
+    f_58_verb_seem                0.296388502 -0.054801585
+    f_27_past_participle_whiz     0.428333154 -0.057529408
+    f_60_that_deletion           -0.225973758 -0.063755179
+    f_57_verb_suasive             0.392510387 -0.126766285
+    f_46_downtoners               0.192475692 -0.170725465
+    f_28_present_participle_whiz  0.421854336 -0.178714748
+    f_03_present_tense           -0.481098596 -0.182900850
+    f_05_time_adverbials          0.017507458 -0.185546942
+    f_23_wh_clause               -0.362788105 -0.239553756
+    f_53_modal_necessity         -0.169149744 -0.311903312
+    f_52_modal_possibility       -0.166501222 -0.332124811
+    f_44_mean_word_length         0.917618683 -0.360802002
+    f_16_other_nouns              0.748254730 -0.400875028
+    f_06_first_person_pronouns   -0.376132258 -0.410485975
+    f_24_infinitives              0.327228387 -0.412768308
+    f_11_indefinite_pronouns     -0.049247142 -0.428642155
+    f_66_neg_synthetic            0.019475331 -0.479669445
+    f_13_wh_question             -0.004481128 -0.563142311
+    f_07_second_person_pronouns  -0.353892475 -0.680125719
+    f_43_type_token               0.373395321 -0.838171465
 
-Not a very exciting graph with only a binary comparison!
+If we consider Drama TV shows to generally have language that is more
+exaggerated compared to comedy TV shows and real life, then we could
+posit that dimension 1 is more likely to reflect the dimension of
+dramaticity. It is likely that dimension 2, then, more reflects
+differences between natural discourse and TV show discourse that are
+shared between the drama and comedy genre. A further analysis of the
+specific features involved will likely support this.
+
+Given this hypothesis, for now we will focus on dimension 1.
 
 ``` r
-heatmap_mda(m, n_factor = 2)
+#mapping the mean dimension scores centered around 0
+stickplot_mda(m, n_factor = 1)
 ```
 
-![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-25-1.png)
+![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-21-1.png)
 
-This is a bit more telling. Interesting that emphatics appear to predict
-natural discourse here when compared to TV show dialogue. I hypothesized
-it might be the opposite.
+This graph is a useful tool for understanding what the dimension
+analysis does. Based on the mean scores we saw earlier, the graph places
+all groups around 0. Since scores are averaged around 0, it is very easy
+to see how the different groups are on opposite ends of the spectrum for
+this dimension.
 
 ``` r
-boxplot_mda(m, n_factor = 2)
+heatmap_mda(m, n_factor = 1)
 ```
 
-![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-26-1.png)
+    Registered S3 method overwritten by 'car':
+      method           from
+      na.action.merMod lme4
 
-Last graph. Similar to the last one, this is just a measure of how
-different these document types are. Worth noting that the natural
-discourses varied a **lot** more and had several outliers.
+![](dramaticity_pipeline_files/figure-commonmark/unnamed-chunk-22-1.png)
 
-## Running MDA with Comedy-Drama Distinction
+By including the relevant features, things become even clearer. One
+important reminder is that highly positive and highly negative features
+(such as mean word length and adverbs) are in a trade off relationship.
+Among these groups, as the mean length of a word increases we would
+expect fewer adverbs to be present and vice versa.
+
+Two immediate thoughts based on this graph:
+
+- it is suprising that emphatics are less likely to occur in drama TV
+  show transcripts
+
+- it is surprising that adverbs are also so unlikely in drama TV show
+  transcripts
+
+It will be important to sample some of the tags for these documents to
+better understand what is causing these rates. What sorts of words are
+being tagged as adverbs so frequently in the SB files?
+
+## Linear Mixed Effect Model
+
+A good next step in the analysis is to determine whether these groupings
+are significantly different along their dimensions. To do so, lme4 can
+be used.
 
 ## Considering Relevant Features
+
+Assuming Dimension one is more fitting for dramaticity, relevant
+features that may have to do with Dramaticity based on these results:
+
+High presense of: -mean word length, prepositions, other nouns,
+nominalizations
+
+Low presense of: -adverbs, pronoun it, emphatics, present tense, proverb
+do
+
+Samples of the text:
 
 ``` r
 sessionInfo()
@@ -518,25 +614,47 @@ sessionInfo()
     [1] stats     graphics  grDevices utils     datasets  methods   base     
 
     other attached packages:
-     [1] polars_2.0.0    mda.biber_1.0.1 corrplot_0.95   lubridate_1.9.5
-     [5] forcats_1.0.1   stringr_1.6.0   dplyr_1.2.1     purrr_1.2.2    
-     [9] readr_2.2.0     tidyr_1.3.2     tibble_3.3.1    ggplot2_4.0.3  
-    [13] tidyverse_2.0.0
+     [1] pseudobibeR_1.3 udpipe_0.8.16   quanteda_4.5.1  spacyr_1.4.0   
+     [5] mda.biber_1.0.1 lme4_2.0-6      Matrix_1.7-5    corrplot_0.95  
+     [9] lubridate_1.9.5 forcats_1.0.1   stringr_1.6.0   dplyr_1.2.1    
+    [13] purrr_1.2.2     readr_2.2.0     tidyr_1.3.2     tibble_3.3.1   
+    [17] ggplot2_4.0.3   tidyverse_2.0.0
 
     loaded via a namespace (and not attached):
-     [1] gtable_0.3.6       xfun_0.60          ggrepel_0.9.8      rstatix_1.1.0     
-     [5] lattice_0.22-9     tzdb_0.5.0         vctrs_0.7.3        tools_4.6.1       
-     [9] generics_0.1.4     parallel_4.6.1     pkgconfig_2.0.3    Matrix_1.7-5      
-    [13] RColorBrewer_1.1-3 S7_0.2.2           nFactors_2.4.1.2   lifecycle_1.0.5   
-    [17] compiler_4.6.1     farver_2.1.2       carData_3.0-6      htmltools_0.5.9   
-    [21] yaml_2.3.12        Formula_1.2-6      car_3.1-5          pillar_1.11.1     
-    [25] ggpubr_1.0.0       crayon_1.5.3       MASS_7.3-65        viridis_0.6.5     
-    [29] abind_1.4-8        tidyselect_1.2.1   digest_0.6.39      stringi_1.8.9     
-    [33] labeling_0.4.3     cowplot_1.2.0      fastmap_1.2.0      grid_4.6.1        
-    [37] cli_3.6.6          magrittr_2.0.5     utf8_1.2.6         broom_1.0.13      
-    [41] withr_3.0.3        backports_1.5.1    scales_1.4.0       bit64_4.8.4       
-    [45] timechange_0.4.0   rmarkdown_2.31     bit_4.6.0          otel_0.2.0        
-    [49] reticulate_1.46.0  gridExtra_2.3.1    ggsignif_0.6.4     png_0.1-9         
-    [53] hms_1.1.4          evaluate_1.0.5     knitr_1.51         viridisLite_0.4.3 
-    [57] rlang_1.3.0        Rcpp_1.1.2         glue_1.8.1         rstudioapi_0.19.0 
-    [61] vroom_1.7.1        jsonlite_2.0.0     R6_2.6.1          
+     [1] tidyselect_1.2.1          viridisLite_0.4.3        
+     [3] farver_2.1.2              viridis_0.6.5            
+     [5] S7_0.2.2                  fastmap_1.2.0            
+     [7] digest_0.6.39             timechange_0.4.0         
+     [9] lifecycle_1.0.5           magrittr_2.0.5           
+    [11] compiler_4.6.1            rlang_1.3.0              
+    [13] tools_4.6.1               utf8_1.2.6               
+    [15] yaml_2.3.12               data.table_1.18.6.1      
+    [17] knitr_1.51                ggsignif_0.6.4           
+    [19] labeling_0.4.3            stopwords_2.3            
+    [21] bit_4.6.0                 RColorBrewer_1.1-3       
+    [23] abind_1.4-8               withr_3.0.3              
+    [25] grid_4.6.1                ggpubr_1.0.0             
+    [27] scales_1.4.0              MASS_7.3-65              
+    [29] cli_3.6.6                 rmarkdown_2.31           
+    [31] crayon_1.5.3              reformulas_0.4.4         
+    [33] nFactors_2.4.1.2          generics_0.1.4           
+    [35] otel_0.2.0                rstudioapi_0.19.0        
+    [37] tzdb_0.5.0                minqa_1.2.8              
+    [39] splines_4.6.1             parallel_4.6.1           
+    [41] vctrs_0.7.3               boot_1.3-32              
+    [43] jsonlite_2.0.0            carData_3.0-6            
+    [45] car_3.1-5                 hms_1.1.4                
+    [47] bit64_4.8.4               ggrepel_0.9.8            
+    [49] rstatix_1.1.0             Formula_1.2-6            
+    [51] quanteda.textstats_0.97.2 glue_1.8.1               
+    [53] nloptr_2.2.1              cowplot_1.2.0            
+    [55] stringi_1.8.9             gtable_0.3.6             
+    [57] pillar_1.11.1             htmltools_0.5.9          
+    [59] R6_2.6.1                  Rdpack_2.6.6             
+    [61] vroom_1.7.1               evaluate_1.0.5           
+    [63] lattice_0.22-9            rbibutils_2.4.1          
+    [65] backports_1.5.1           broom_1.0.13             
+    [67] Rcpp_1.1.2                fastmatch_1.1-8          
+    [69] nsyllable_1.0.1           gridExtra_2.3.1          
+    [71] nlme_3.1-169              xfun_0.60                
+    [73] pkgconfig_2.0.3          

@@ -105,4 +105,13 @@ Generally speaking, the first dimension seems to be a matter of the "dramatic" f
 However, it will be important to compare some specific documents and features to confirm this.
 Dimension two seems to be a better fit for the more practical differences between all TV shows and natural discourse such as higher specificity and less redundancy in TV show dialogue.
 
+### Next Steps
+
+Additionally, while I am not at the point where I have anything concrete, I did start an analysis scratchpad where I've begun examining features individually and starting the process for extracting pieces of parsed text. 
+Diving deeper into the significant features both in order to defend our dimension interpretations and to better understand how the texts differ is the main next step.
+Additionally, as can be seen in the analysis, I did begin the process of preparing a Linear Mixed Effects Model, but I'm not quite there yet.
+Once I have that, I will also be able to state how significant these dimensions are for predicting the different texts.
+All of this should serve well to answering my research questions. 
+
+
 
