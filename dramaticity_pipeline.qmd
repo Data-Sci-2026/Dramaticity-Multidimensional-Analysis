@@ -5,7 +5,7 @@ date: 11/6/2026
 format: gfm
 ---
 
-## EXISTING 
+## EXISTING piepline
 
 This pipeline was used for progress report 2, it has been updated to reflect the final analysis
 
@@ -13,7 +13,7 @@ This pipeline was used for progress report 2, it has been updated to reflect the
 
 In addition to tidyverse packages, `corrplot`, `mda.biber`, `spacyr`, `udpipe`, and `quanteda` will all need to be installed. 
 
-Additionally, an installation of python (3.10+). Once these are installed, everything can be completed within R as described below. 
+Additionally, an installation of python (3.10+) is required to utilize spaCy R. Once these are installed, everything can be completed within R as described below. 
 
 [Information on spaCy](https://spacy.io/usage)
 
@@ -32,11 +32,11 @@ library(pseudobibeR)
 
 This pipeline describes the process of completing the MDA. See the [Santa Barbara Pipeline](santa_barbara_pipeline.md) and the [Scraps from the Loft Pipeline](scraps_from_loft_pipeline.md) for information on how the component data frames were assembled and where the data came from. 
 
-This document is used to describe how the individual data frames were combined, the shape of the resulting data frame, and the steps of the analysis. If more details are needed to explain the steps of the MDA, see the [MDA document](mda.md). Final results and exploration of the analysis is documented in the [Dramaticity Analysis](final_report.md) document. 
+This document is used to describe how the individual data frames were combined, the shape of the resulting data frame, and the steps of the analysis. Finally, it will brielfy go over the results. If more details are needed to explain the steps of the MDA, see the [MDA document](mda.md). Final results and exploration of the analysis is documented in the [Dramaticity Analysis](final_report.md) document. 
 
-## Creating all_transcripts df
+## Creating all_transcripts DF
 
-First, we load in the tv_show_transcripts pipeline as a csv (saved to avoid repeated webscraping).
+First, we load in the `tv_show_transcripts` pipeline as a csv.
 
 ```{r}
 #| output: false
@@ -57,7 +57,6 @@ sb_files <- read.csv("private/sb_files.csv")
 sb_files
 ```
 
-
 Finally, we combine the two data frames.
 
 ```{r}
@@ -66,7 +65,7 @@ Finally, we combine the two data frames.
 all_transcripts <- rbind(sb_files, tv_show_df)
 
 all_transcripts <- all_transcripts|>
-  #renaming the second column to text as that is what is expected for the pybiber pipeline below
+  #renaming the first column to id and the second column to text as that is what is expected for the pseudobiber pipeline below
   rename(text = "clean_words",
          doc_id = "id")
 ```
@@ -78,7 +77,7 @@ write_csv(all_transcripts, "private/all_transcripts.csv")
 ```
 
 
-## Summary all_transcripts
+## Summary `all_transcripts`
 
 Below is some summary information about what is included in all_transcripts:
 
@@ -115,25 +114,30 @@ all_transcripts |>
   summarize(sum(nwords))
 ```
 
+
 ## Tagging all_transcripts and Getting Factor Loadings
 
-In order to parse the data, it is necessary to use spaCy to tag all of the words in the document. Then, an r package called `pseudobibeR` can be used to get the 67 linguistic features created by Biber. For more details on the process, see [here](https://github.com/browndw/pseudobibeR). Note that this package and the following were created by David Brown, a linguist at CMU!
+In order to parse the data, it is necessary to use spaCy to tag all of the words in the document. Then, an R package called `pseudobibeR` can be used to get the 67 linguistic features created by Biber. For more details on the process, see [here](https://github.com/browndw/pseudobibeR). Note that this package and the following were created by David Brown, a linguist at CMU!
 
 First, we can ensure that all texts are normalized and in a corpus format. A glimpse of the corpus format can be seen below.
 
 ```{r}
+#| output: false
+
 # 1. Read the texts and normalize typographic quotes (’ -> ')
 all_transcripts$clean_words <- utf8::utf8_normalize(all_transcripts$clean_words, map_quote = TRUE)
 corp <- corpus(all_transcripts)
 
 corp
 ```
-Next, we will download an English parsing model through `udpipe`. 
+Next, we will download an English parsing model through `udpipe`. This is essentially a wrapper that allows R users to run tagging and parsing. 
 
 ```{r}
+
 # 2. Parse with udpipe (the model is downloaded once)
 model <- udpipe_download_model(language = "english")
 ```
+Once the above code has been run once, only the below code will be necessary to load in the model as below. 
 
 ```{r}
 ud_model <- udpipe_load_model(model$file_model)
@@ -155,9 +159,9 @@ features <- biber(parsed)
 
 ## Getting Dimension Scores
 
-As can be seen in the features data structure, have feature loadings for each text. These can now be run through another series of functions to get the overall scores for the 67 linguistic features for each text. 
+As can be seen in the `features` data structure, have feature loadings for each text. These can now be run through another series of functions to get the overall scores for the 67 linguistic features for each text. 
 
-Once read in, the process described [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html) is used to run our first attempt at the MDA. 
+Once read in, the process described [here](https://cran.r-project.org/web/packages/mda.biber/vignettes/introduction.html) is used to run our first attempt at the MDA. This is the second half of David Brown's pipeline!
 
 Note that the documents are being renamed below such that each individual file is represented by it's category and no other information. For instance, each comedy TV show will only be known as comedy. This is necessary since we are comparing the groups as a whole.
 
@@ -176,34 +180,38 @@ d <- features |>
   select(where(~ any(. != 0)))
 ```
 
-This changes the labels of the id column so that our groups are formed, turns them into factors, and removes any columns with 0 instances. 
+This changes the labels of the id column so that our groups are formed, turns them into factors, and removes any columns with 0 instances. Any features not observed should not be there to run a proper mda as below.
 
 ## Determining Ideal Number of Factors
 
-The next step in the analysis is to decide on how many factors should be formed from the factor loadings. See the [MDA](mda.md) document for more details.
+The next step in the analysis is to decide on how many factors should be formed from the factor loadings. See the [MDA](mda.md) document for more details on this important decision. 
 
 ```{r}
 screeplot_mda(d)
 ```
 A screeplot displays 'eigenvalues'. Simply put, it groups feature weights based on their impact on the data. Large feature loadings will therefore be grouped together, medium feature loadings grouped together, and so on. 
 
-The 'elbow' is essentially the cut off point where the features being grouped are not particularly impactful in terms of their predictive power. Visually, it is where the line becomes less steep. Anything at or below the elbow is considered 'scree'. In this case, based on the AF value, we can roughly mark that as the elbow. Since there are two points above that, we should include two factors 
+The 'elbow' is a term used to describe the cut off point where the features being grouped are not particularly impactful in terms of their predictive power. Visually, it is where the line becomes less steep. Anything at or below the elbow is considered 'scree'. 
+
+In this case, we have decided to use the AF (accelerated factor) value to determine the elbow. This is a mathematical measure of where the line first begins to curve. Since there are two points above that, we should include two factors. Note that there is no easy way to determine the elbow or how many dimensions to include. If it is found that more dimensions might better suit an understanding of the data, re-analysis should be done.
+
+In order to be sure that an mda is worth running, we want to see that there is high correlation and inverse correlation among textual features. While this step is expected for textual features, it is still nice to run to be sure.
 
 ```{r}
 cor_m <- cor(d[,-1], method = "pearson")
 
 corrplot(cor_m, type = "upper", order = "hclust", tl.col = "black", tl.srt = 45, diag = F, tl.cex = 0.5)
 ```
-This plot is a representation of correlation between features. Blue indicates positive correlation along and red indicates negative correlation. So, we can see that a number of these features are correlated, so an MDA analysis makes sense. 
+As we can see, there are multiple areas of dark blue (high correlation) and dark red (high inverse correlation). Therefore, we know that a multidimensional analysis makes sense for these groups. 
 
-Here we are running the mda. Essentially, we are getting mean scores for the significan feature loadings within each dimension. 
+Next we are running the mda. Essentially, we are getting mean scores for the significant feature loadings within each dimension (>.35).
 
 ```{r}
 #now for the actual mda, factors is set equal to 2 because of the screeplot results
 m <- mda_loadings(d, n_factors = 2)
 ```
 
-And below we can see these mean values. 
+And below we can see these mean values:
 
 ```{r}
 dimension_scores <- attributes(m)$group_means
@@ -211,29 +219,30 @@ dimension_scores <- attributes(m)$group_means
 dimension_scores
 ```
 
-Immediately, we can see a substantial difference between Factor 1 and Factor 2. While Drama scores quite distinctly from the other two groups in Factor 1, Natural language is quite different along Factor 2. A deeper analysis of the differences between these two factors will likely lead to a better understanding of where dramaticity comes into play. 
+Immediately, we can see a substantial difference between Factor 1 and Factor 2. While Drama scores quite distinctly from the other two groups in Factor 1, Natural language is quite different along Factor 2. A deeper analysis of the differences between these two factors will likely lead to a better understanding of where dramaticity comes into play. These differences can be even better visualized in graphic form.
 
+Below are the highest correlation features by factor.
 
 ```{r}
 #values arranged in descending order for factor 1
-attributes(m)$loadings |> arrange(Factor1)
+attributes(m)$loadings |> arrange(-Factor1)
 ```
 
 ```{r}
 #values arranged in descending order for factor 1
+#note that m contains the raw values while specifying loadings gets us the values normalized around 0
 attributes(m)$loadings |> arrange(-Factor2)
 ```
 
-If we consider Drama TV shows to generally have language that is more exaggerated compared to comedy TV shows and real life, than we could posit that dimension 1 is more likely to reflect the dimension of dramaticity. It is likely that dimension 2, then, more reflects differences between natural discourse and tv show discourse that are shared between the drama and comedy genre. A further analysis of the specific features involved will likely support this.
+If we consider Drama TV shows to generally have language that is more exaggerated compared to comedy TV shows and real life, then we could posit that dimension 1 is more likely to reflect the dimension of dramaticity. It is likely that dimension 2, then, more reflects differences between natural discourse and TV show discourse that are shared between the drama and comedy genre. A further analysis of the specific features involved will likely support this.
 
-Given this hypothysis, for now we will focus on dimension 1.
+Given this hypothesis, for now we will focus on dimension 1.
 
 ```{r}
 #mapping the mean dimension scores centered around 0
 stickplot_mda(m, n_factor = 1)
 ```
-This graph is a useful tool for understanding what the dimension analysis is actually saying. Since scores are averaged around 0, it is very easy to see how the different groups are on opposite ends of the spectrum for this dimension. 
-
+This graph is a useful tool for understanding what the dimension analysis does. Based on the mean scores we saw earlier, the graph places all groups around 0. Since scores are averaged around 0, it is very easy to see how the different groups are on opposite ends of the spectrum for this dimension. 
 
 ```{r}
 heatmap_mda(m, n_factor = 1)
@@ -253,6 +262,7 @@ It will be important to sample some of the tags for these documents to better un
 
 A good next step in the analysis is to determine whether these groupings are significantly different along their dimensions. To do so, lme4 can be used. 
 
+
 ## Considering Relevant Features
 
 Assuming Dimension one is more fitting for dramaticity, relevant features that may have to do with Dramaticity based on these results:
@@ -262,6 +272,9 @@ High presense of:
 
 Low presense of:
 -adverbs, pronoun it, emphatics, present tense, proverb do
+
+Samples of the text:
+
 
 
 

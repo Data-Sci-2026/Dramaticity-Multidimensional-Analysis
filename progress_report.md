@@ -93,15 +93,16 @@ A title has been added to the readme!
 ### Pseudobiber
 
 The pseudobiber package has been fully incorporated, and I think it is a useful addition. 
-I have also added more to biber_notes, specifically in terms of deciding on number of factors and interpreting mean factor scores. 
-
+One slight difficulty is that the tagging seems to be much slower than the python tagging. 
+I have also added more to the [mda notes document](mda.md) from Biber, specifically in terms of deciding on number of factors and interpreting mean factor scores. 
 
 ### Analysis
 
-While I did not accomplish as much as I wanted in terms of analysis, the introduction of a contrast between comedy and drama TV shows has immediately helped distil the observations possible.
+While I did not accomplish as much as I wanted in terms of analysis, the introduction of a contrast between comedy and drama TV shows has immediately helped distill the observations possible.
 A comparison of the two different dimensions among the three groups should allow for a lot of rich comparisons between linguistic features.
 In particular, based on literature in TV shows, I think it is very promising that two dimensions arose. 
 Generally speaking, the first dimension seems to be a matter of the "dramatic" forms of language we are hoping to find.
-Dimension two seems to be a better fit for the more practical differences between all TV shows and natural discourse such as higher specificity and less redundency in TV show dialogue.
+However, it will be important to compare some specific documents and features to confirm this.
+Dimension two seems to be a better fit for the more practical differences between all TV shows and natural discourse such as higher specificity and less redundancy in TV show dialogue.
 
 

@@ -96,7 +96,7 @@ In order to iterate, we will need a list of all the file paths.
 
 ```{r}
 #here we go into the file TRN and pull out all of the full names for the files
-files = list.files("data/SBCorpus/TRN", full.names = TRUE)
+files <- list.files("data/SBCorpus/TRN", full.names = TRUE)
 ```
 
 ```{r}
