@@ -133,7 +133,6 @@ corp
 Next, we will download an English parsing model through `udpipe`. This is essentially a wrapper that allows R users to run tagging and parsing. 
 
 ```{r}
-
 # 2. Parse with udpipe (the model is downloaded once)
 model <- udpipe_download_model(language = "english")
 ```
@@ -148,12 +147,19 @@ And parse each character in the corpus. This process takes some time, around ten
 ```{r}
 parsed <- udpipe_annotate(ud_model, x = as.character(corp), doc_id = docnames(corp), trace = 100)
 ```
+```{r}
+parsed_df <- read_csv("private/parsed.csv")
+```
 
 Finally, we can get the feature weights which will be used in the second half of functions. This function also takes some time to run, about 2-3 minutes. 
 
 ```{r}
 # 3. Count the features: one row per document
 features <- biber(parsed)
+```
+
+```{r}
+features <- read_csv("features.csv")
 ```
 
 
@@ -213,6 +219,7 @@ Next we are running the MDA. Essentially, we are getting mean scores for the sig
 m <- mda_loadings(d, n_factors = 2)
 ```
 
+
 And below we can see these mean values:
 
 ```{r}
@@ -265,9 +272,67 @@ It will be important to sample some of the tags for these documents to better un
 A good next step in the analysis is to determine whether these groupings are significantly different along their dimensions. In other words, how well do the dimensions and their features predict a given group. 
 
 
-## Considering Relevant Features
+## Defining Dimensions
 
-Assuming Dimension one is more fitting for dramaticity, relevant features that may have to do with dramaticity based on these results:
+In order to actually define our dimension, let's create two dfs. Each will depict the relevant linguistic features (positive and negative) in order of their significance or how strongly they seem to occur within the dimension. 
+
+```{r}
+#we have set our threshold at .35 or -.35 as is standard
+threshold <- 0.35
+
+# Dimension 1
+dim1_positive <- loadings[loadings$Factor1 >= threshold, ]
+dim1_negative <- loadings[loadings$Factor1 <= -threshold, ]
+
+# Dimension 2
+dim2_positive <- loadings[loadings$Factor2 >= threshold, ]
+dim2_negative <- loadings[loadings$Factor2 <= -threshold, ]
+
+#creating dimension 1 by itself
+dim1_positive <- dim1_positive |>
+  select(Factor1) |>
+  arrange(desc(Factor1))
+
+dim1_negative <- dim1_negative |>
+  select(Factor1) |>
+  arrange(Factor1)
+
+dim1 <- dim1_positive |>
+  rbind(dim1_negative)
+
+
+#creating dimension 2 by itself
+dim2_positive <- dim2_positive |>
+  select(Factor2) |>
+  arrange(desc(Factor2))
+
+dim2_negative <- dim2_negative |>
+  select(Factor2) |>
+  arrange(Factor2)
+
+dim2 <- dim2_positive |>
+  rbind(dim2_negative)
+
+#results
+dim1
+dim2
+```
+
+### Dimension 1 - Should this incorporate other literature? Probably
+
+Dimension 1 is slightly larger and is composed of 15 positive features and 13 negative ones. It is possible that this dimension is a bit overloaded (in the sense that it is trying to descirbe multiple underlying dimensions at the same time) which makes it more challenging to interpret. It groups Comedy and Natural discourse closer together on one end and Drama on the other.
+
+Many of the positive features essentially boil down to higher information density. This fits in with Kozloff's idea that one key ways TV show dialogue differs from natural discourse is "communication of the narrative" (p. 33). Mean word length, prepositions, higher nouns overall (other nouns), nominalizations, agentless passives, and gerunds, which make up the five largest weights, all suggest that their texts are more focused on information and specificity (Biber 105-106). TTR and phrasal coordination, while less significant, also suggest this idea of more densely packed information with a need to express ideas faster. TTR could also be suggesting that natural discourse is more repetitive (or involved) which it likely is (`source`). This makes sense for the drama category as a genre distinction since often drama have more convoluted plots and need to communicate the narrative to viewers through dialogue (Kozloff). 
+
+Elaborated explanation specific to verbal explanations: 
+For verbal communication, several features have been considered methods for quickly expanding on information in a verbal context. Passed participle WHIZ and present participle whiz allow for elaboration on nouns more fluidly in conversation (Biber 105) and *that* in object position is similarly a way to elaborate on topics in conversation. The high use of these again suggests that drama particularly uses dialogue as a way to transfer information. 
+
+The above features could be considered a more practical, intuitive aspect of TV shows. Since they are constrained to a limited time frame and meant to be entertaining, they are often more information dense (`source`). While this could certainly contribute to the dialogue "sounding" more dramatic, some other features more suggest this notion. While less significant on this dimension (possible because comedy is closer on them). 
+
+Maybe actually dramatic: agentless passives, by passives, attributive adjectives, adverbs, verb suasives
+
+As for the negative features, we have many that pattern straightforwardly as "high information." These include 
+
 
 High presence of:
 -mean word length, prepositions, other nouns, nominalizations
@@ -277,7 +342,37 @@ Low presence of:
 
 Samples of the text:
 
+### Dimension 2
 
+Dramaticity
+
+This dimension has much more promise to showcase those features that represent dramaticity. It is a smaller dimension made up of only 11 positive features and 9 negative ones. Natural discourse is grouped on the positive side while Comedy and Drama are grouped on the negative side. Already, this seems to suggest a dimension that is better dividing TV show discourse from Natural discourse.
+
+Some of the positive features are repeated from dimension 1, suggesting that these are particularly potent features for creating an cline displaying natural-comedy-drama. These include contractions, negative analytics, demonstrative pronoun, and pronoun it. All of these suggest that for the dramas sampled, there is a specific and clear nature to the language compared with natural discourse. Contractions and negative synthetic elements are both easier to use with processing constraints such as in a real conversation (`source`). TV shows are pre-written and rehearsed, so these processing constraints are not an issue. And as mentioned at length in the first dimension, they want the audience to follow the dialogue easily. Demonstrative pronouns and pronoun it have lower weights but generally suggest the same differences above. Both are ways of quickly referring to things throughout the conversation, representing high interactivity. However for TV shows, high use of these functions can come off as repetitive or even dull (`source`). 
+
+One overarching difference Quaglio focused on was that language is informal. For his comparison, he found the Friends was even *more* informal than natural discourse. However, a more complex finding here seems to be appearing. Features like discourse particles and stranded prepositions both co-occur positively with the positive side of dimension 2. These features are all marking some amount of informality. It is worth noting that many of the features in the previous paragraph could be grouped here. So, degree of informality seems to be one interpretation of the features so far. It is worth investigating why Quaglio's findings differed. One likely explanation is that due to a wider range of settings, there are simply too many TV shows in both comedy and drama that have reason to be more formal. Indeed, Friends could even be an outlier relative to the comedy genre in terms of informality. 
+
+Third person pronouns and past tense could be associated with narrative language. Quaglio has an entire chapter devoted to differences in how narratives are portrayed in natural discourse versus television. Ultimately, both mediums make use of narratives, but natural discourse seems to use it more often. In this way, the findings of this dimension comparison seem to mirror findings by Quaglio. Story-telling is not prominent in either, but TV shows engage in it even less. Why is this? 
+
+And lastly, for the positive features, we have clausal coordination, predictive modals, adverbial subordinators. These features are the oddballs of the bunch. FINISH
+
+For negative features, TTR and synthetic negatives contrast the first paragraph discussing positive features. They suggest that the texts within Drama and Comedy are less spontaneous or elaborated, which makes sense. 
+
+Higher rates of both second and first persons pronouns deserve some attention. Compared to 
+
+WH questions deserves it's own explanation. This feature has actually been found to be more frequent in TV show discourse before, and has been studied by Bednarek. 
+NOTE -- Bednarek finds the most common trigrams for wh questions, this would be so cool to see for our corpus!!
+
+
+
+
+### Deep Dive Features
+
+So, which features can be said to represent dramaticity? In a sense, all of them. While a distinction can be made (or indeed many distinctions) between the manner in which these features make a text *seem* more dramatic (what their function is within TV shows), those distinctions are debated in the literature and often depend on the particular show. However, there are certainly some features which are more interesting, surprising, or worth looking into further. Additionally, there are some features that seem to better represent the *unintended* effects of TV show dialogue. This idea of looking into unintenitonal effects comes directly from work by Bednerak. 
+
+For the present analysis, the five features below will be looked at in more depth. All of them seem to represent more unintended effects, are thoroughly discussed in related literature, and/or had a particularly high weight in the MDA results.
+
+- Wh-questions
 
 
 
