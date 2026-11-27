@@ -155,11 +155,12 @@ Finally, we can get the feature weights which will be used in the second half of
 
 ```{r}
 # 3. Count the features: one row per document
-features <- biber(parsed)
+#since we've already created and saved this document, we can simply load it in as below
+#features <- biber(parsed)
 ```
 
 ```{r}
-features <- read_csv("features.csv")
+features <- read_csv("private/features.csv")
 ```
 
 
